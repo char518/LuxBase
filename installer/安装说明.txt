@@ -1,7 +1,11 @@
-LuxBase 2.1.0 安装说明
-========================
-开发并构建：charl
-适用平台：macOS 12.0+（Apple Silicon / aarch64）
+LuxBase 2.1.0 安装说明 · Installation Guide（中英双语）
+======================================================
+开发并构建 / Developed and built by：charl
+适用平台 / Platform：macOS 12.0+（Apple Silicon / aarch64）
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+中文说明
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 一、安装步骤
 1. 双击打开本 DMG 镜像。
@@ -48,5 +52,67 @@ LuxBase 2.1.0 安装说明
 - 卸载：删除 Applications 中的 LuxBase.app；如需清空数据再删除上述目录。
 
 六、关于
-LuxBase 由 charl 开发并构建。
+LuxBase 由 charl 开发并构建，MIT 开源。
 版本 2.1.0 · 多协议数据库客户端（MySQL / PostgreSQL / SQLite / Redis / Elasticsearch）。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+English Version
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Installation
+1) Open this DMG image.
+2) Drag LuxBase.app onto the Applications shortcut.
+3) Eject the image (optional) and launch LuxBase from Launchpad or Applications.
+
+2. If macOS blocks the first launch
+The bundle is ad-hoc signed (not notarized), so Gatekeeper may warn about an
+unverified developer. Either:
+  A. Right-click LuxBase.app in Applications → Open → Open again, or
+  B. Run in Terminal:
+         xattr -dr com.apple.quarantine /Applications/LuxBase.app
+     then open the app normally.
+If it is still blocked: System Settings → Privacy & Security → Open Anyway.
+
+3. Quick start
+1) Create a connection via "连接" (Connections): MySQL / PostgreSQL / SQLite /
+   Redis / Elasticsearch. Credentials are encrypted into the local vault in the
+   LuxBase data folder — nothing is uploaded anywhere.
+2) Expand a connection on the left to browse tables / Redis keyspaces / ES
+   indices; double-click a table to open its data.
+3) Query: ⌘T for a new tab, ⌘↵ to run. Result cells are editable by double-click
+   (single-table results with primary keys), and exports support CSV/JSONL.
+4) Redis: browse keys per DB, edit values by type, preview binary values as
+   text/hex, and use the raw command console (dangerous commands need confirmation).
+5) Elasticsearch: index management, document browsing/editing, mappings, aliases
+   and a REST console.
+6) Dangerous operations (drops, FLUSH, bulk deletes) always require confirmation
+   and are written to an append-only audit log.
+
+4. AI agent access (MCP, optional)
+The bundle includes luxbase-mcp, a local stdio MCP server that lets AI agents
+(Claude, Qoder, etc.) query your saved LuxBase connections. Passwords never leave
+the local vault and are never shown to the agent. Add this to your agent's MCP
+configuration (adjust the path to where you installed the app):
+  {
+    "mcpServers": {
+      "luxbase": {
+        "command": "/Applications/LuxBase.app/Contents/MacOS/luxbase-mcp",
+        "args": []
+      }
+    }
+  }
+Read-only by default: list_connections / list_tables / describe_table / query
+(single SELECT etc., 100 rows by default, 1000 max) / redis_scan / redis_get /
+es_search. To allow writes, set args to ["--allow-writes"], which adds the
+execute tool (single write statement). Every agent statement is audited in LuxBase.
+
+5. Data and uninstall
+- Connections, query drafts and the audit log live in:
+  ~/Library/Application Support/com.luxbase.app/
+- To uninstall, delete LuxBase.app from Applications; delete the folder above
+  as well if you also want to remove your local data.
+
+6. About
+LuxBase is developed and built by charl, released under the MIT license.
+Version 2.1.0 · multi-protocol database client (MySQL / PostgreSQL / SQLite /
+Redis / Elasticsearch).

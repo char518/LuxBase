@@ -50,7 +50,7 @@ Every statement an agent runs is appended to the LuxBase audit log.
    (The bundle is ad-hoc signed, not notarized — build from source if you prefer.)
 3. Create a connection and you're in. Everything lives locally under `~/Library/Application Support/com.luxbase.app/`.
 
-A Chinese install guide is included in the DMG.
+A bilingual (Chinese/English) install guide is included in the DMG.
 
 ## Build from source
 

@@ -50,7 +50,7 @@ AI 的每一条查询和写入，也都会记进 LuxBase 的审计日志。
    （包是自签名的，没做 Apple 公证，介意的话可以自己从源码构建。）
 3. 新建连接就能用了。你的连接和密码都在本机 `~/Library/Application Support/com.luxbase.app/`。
 
-DMG 里也附了一份中文安装说明。
+DMG 里也附了一份中英双语安装说明。
 
 ## 从源码跑起来
 
