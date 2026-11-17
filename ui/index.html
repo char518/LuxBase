@@ -18,7 +18,7 @@
 </head>
 <body>
   <svg class="sprite" aria-hidden="true">
-    <symbol id="brand-luxbase" viewBox="0 0 24 24"><path d="M7 3.4h3.6v12.2h9v2.6H7Z" fill="currentColor" stroke="none"/><path d="M13.2 3.4 19.8 10h-6.6Z" fill="currentColor" stroke="none" opacity=".82"/><path d="M7 19.6h12.8v2.4H7Z" fill="currentColor" stroke="none" opacity=".5"/></symbol>
+    <symbol id="brand-luxbase" viewBox="0 0 24 24"><path d="M7 3.4h3.6v12.2h9v2.6H7Z" fill="currentColor" stroke="none"/><path d="M12.2 3.4 19.6 10.8h-7.4Z" fill="currentColor" stroke="none" opacity=".88"/><path d="M12.2 6.4l4.4 4.4h-4.4Z" fill="currentColor" stroke="none" opacity=".5"/><path d="M7 19.8h12.6v2.2H7Z" fill="currentColor" stroke="none" opacity=".55"/></symbol>
     <symbol id="proto-mysql" viewBox="0 0 24 24"><path d="M6.2 12.6C7.2 7.4 11 4.6 16.8 4.2c-1.9 2-2.9 4-3.3 6.4 2.3.3 4.2 1 5.7 2Z" fill="currentColor" stroke="none"/><path d="M3.4 15.6c2-1.5 4-1.5 6 0s4 1.5 6 0 4-1.5 5.2 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M3.4 18.8c2-1.5 4-1.5 6 0s4 1.5 6 0 4-1.5 5.2 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".6"/></symbol>
     <symbol id="proto-postgres" viewBox="0 0 24 24"><path d="M12 3.4c-4 0-7 2.7-7 6.3 0 2.3 1.2 4.2 3 5.3v3.6c0 .9.7 1.6 1.6 1.6.9 0 1.6-.7 1.6-1.6v-2.8h1.6v2.8c0 .9.7 1.6 1.6 1.6.9 0 1.6-.7 1.6-1.6V15c1.8-1.1 3-3 3-5.3 0-3.6-3-6.3-7-6.3Z" fill="currentColor" stroke="none"/><path d="M17 9.6c1.6.8 2.3 2.4 1.6 4.2-.5 1.3-1.5 2-2.6 2.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="9.4" cy="8.6" r="1.15" fill="currentColor" opacity=".35"/></symbol>
     <symbol id="proto-sqlite" viewBox="0 0 24 24"><path d="M20.2 3.6c-6.4.3-11.6 3.6-13.8 9.2-1 2.6-1.2 4.9-1.1 6.4 1.5.1 3.8-.1 6.4-1.1 5.6-2.2 8.9-7.4 9.2-13.8Z" fill="currentColor" stroke="none"/><path d="M5.6 18.6C9.2 13 13.6 8.6 19 5.2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".45"/><path d="M4 20.4c.6-1 1.2-1.9 1.6-2.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
@@ -163,7 +163,9 @@
       <main class="workspace">
         <div class="workspace-tabbar" role="tablist">
           <button class="workspace-tab pinned-tab active" data-workspace="objects" title="对象 (⌘1)"><svg class="tab-svg"><use href="#i-grid"/></svg><span class="tab-title">对象</span></button>
+          <button class="tab-scroll" data-tab-scroll="-1" title="向左滚动标签页" aria-label="向左滚动标签页" hidden>‹</button>
           <div class="sql-tab-strip" id="sql-tab-strip"></div>
+          <button class="tab-scroll" data-tab-scroll="1" title="向右滚动标签页" aria-label="向右滚动标签页" hidden>›</button>
           <button class="new-tab" data-action="new-query" title="新建查询 (⌘T)"><svg><use href="#i-plus"/></svg></button>
           <button class="tab-strip-menu" data-action="tab-menu" title="标签页操作：关闭其他 / 关闭左侧 / 关闭右侧 / 关闭全部" aria-label="标签页操作"><svg><use href="#i-chevron-down"/></svg></button>
           <div class="tabbar-spacer"></div>
@@ -422,7 +424,7 @@
           <div class="info-card" id="info-card" hidden>
             <div class="info-hero">
               <span class="info-icon" id="info-icon"></span>
-              <div class="info-title"><h2 id="object-name"></h2><span id="object-meta"></span></div>
+              <div class="info-title"><h2 id="object-name"></h2><span class="object-name-actions" id="object-name-actions"></span><span id="object-meta"></span></div>
             </div>
             <div class="info-location" id="info-location"></div>
             <div class="info-props" id="object-stats"></div>

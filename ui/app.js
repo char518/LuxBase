@@ -5163,6 +5163,12 @@ export function mountUi() {
       <button class="danger-item" data-action="es-delete-index"><svg><use href="#i-warning"/></svg>删除索引</button>`);
   }
 
+  function qualifiedTableName(target) {
+    const protocol = connectionProtocol(target.connectionId) || "mysql";
+    const quote = (part) => protocol === "mysql" ? `\`${String(part).replace(/`/g, "``")}\`` : `"${String(part).replace(/"/g, '""')}"`;
+    return target.schema ? `${quote(target.schema)}.${quote(target.table)}` : quote(target.table);
+  }
+
   function showTableContext(event, tableRow) {
     const group = tableRow.closest(".connection-group");
     const connectionId = tableRow.dataset.connectionId || group?.dataset.connectionId || activeConnectionId;
@@ -5185,6 +5191,7 @@ export function mountUi() {
       ${isView ? (isMaterialized ? "" : menuButton("view-edit", "settings", "编辑视图")) : menuButton("table-designer", "table", "设计表")}
       ${menuButton("show-object-info", "search", "查看结构与 DDL")}
       ${menuButton("copy-table-name", "copy", "复制名称")}
+      ${menuButton("copy-table-qualified", "copy", "复制限定名（库.表）")}
       ${menuButton("export", "export", "导出数据")}
       <span class="context-sep"></span>
       ${menuButton("new-query-here", "query", "在此库新建查询")}
@@ -5986,8 +5993,19 @@ export function mountUi() {
     }).join("");
     const active = strip.querySelector(".sql-tab.active");
     if (active) active.scrollIntoView({ block: "nearest", inline: "nearest" });
+    updateTabStripNav();
     const stripMenu = $(".tab-strip-menu");
     if (stripMenu) stripMenu.hidden = sqlTabs.length === 0;
+  }
+
+  function updateTabStripNav() {
+    const strip = $("#sql-tab-strip");
+    if (!strip) return;
+    const overflow = strip.scrollWidth > strip.clientWidth + 2;
+    const left = $('[data-tab-scroll="-1"]');
+    const right = $('[data-tab-scroll="1"]');
+    if (left) { left.hidden = !overflow; left.disabled = strip.scrollLeft <= 2; }
+    if (right) { right.hidden = !overflow; right.disabled = strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 2; }
   }
 
   function syncGridIntoTab() {
@@ -6095,11 +6113,6 @@ export function mountUi() {
     if (!tab) return;
     tabMenuTargetId = id;
     placeContextMenu(event, tabMenuHtml(tab));
-  }
-
-  function openTabMenuAt(anchor, id) {
-    const rect = anchor.getBoundingClientRect();
-    openTabMenu({ clientX: rect.left, clientY: rect.bottom + 4, preventDefault() {} }, id);
   }
 
   // Bulk close asks once for the whole batch instead of once per tab: unsaved drafts can be kept
@@ -8045,6 +8058,14 @@ export function mountUi() {
     }
     $("#object-name").textContent = name;
     $("#object-meta").textContent = typeLabel;
+    const actions = $("#object-name-actions");
+    if (actions) {
+      const show = kind === "table" || kind === "view";
+      actions.hidden = !show;
+      if (show) {
+        actions.innerHTML = `<button data-action="copy-info-name" title="复制表名" aria-label="复制表名"><svg><use href="#i-copy"/></svg></button>`;
+      }
+    }
     const locationBox = $("#info-location");
     if (locationBox) {
       locationBox.innerHTML = location.map(([symbol, text]) => `<span><svg><use href="#${symbol}"/></svg>${escapeHtml(text)}</span>`).join("");
@@ -9814,6 +9835,25 @@ export function mountUi() {
     if (typeof ResizeObserver === "function") new ResizeObserver(() => renderGridBody()).observe(wrap);
   }
 
+  function bindTabStripEvents() {
+    const strip = $("#sql-tab-strip");
+    if (!strip) return;
+    strip.addEventListener("scroll", updateTabStripNav, { passive: true });
+    strip.addEventListener("wheel", (event) => {
+      if (strip.scrollWidth <= strip.clientWidth + 2) return;
+      const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+      if (!delta) return;
+      event.preventDefault();
+      strip.scrollLeft += delta;
+    }, { passive: false });
+    if (typeof ResizeObserver === "function") new ResizeObserver(updateTabStripNav).observe(strip);
+    $$("[data-tab-scroll]").forEach((button) => button.addEventListener("click", () => {
+      const distance = Number(button.dataset.tabScroll) * Math.max(180, strip.clientWidth * 0.7);
+      strip.scrollBy({ left: distance, behavior: "smooth" });
+    }));
+    updateTabStripNav();
+  }
+
   function bindPanelResizers() {
     document.addEventListener("mousedown", (event) => {
       const handle = event.target.closest?.("[data-panel-resize]");
@@ -10265,7 +10305,18 @@ export function mountUi() {
         break;
       case "tab-menu": {
         const tab = activeSqlTab();
-        if (tab) openTabMenuAt(target, tab.id);
+        if (!tab) break;
+        tabMenuTargetId = tab.id;
+        const rect = target.getBoundingClientRect();
+        const switchItems = sqlTabs.map((item) => `<button class="tab-switch-item${item.id === tab.id ? " is-active" : ""}" data-action="tab-switch" data-tab-id="${escapeHtml(item.id)}" title="${escapeHtml(item.title)}"><span class="tab-switch-title">${escapeHtml(item.title)}</span>${item.id === tab.id ? "<kbd>当前</kbd>" : ""}</button>`).join("");
+        placeContextMenu({ clientX: rect.left, clientY: rect.bottom + 4, preventDefault() {} },
+          `<span class="context-label">全部标签页（${sqlTabs.length}）</span>${switchItems}<span class="context-sep"></span>${tabMenuHtml(tab)}`);
+        break;
+      }
+      case "tab-switch": {
+        contextMenu.hidden = true;
+        const id = target.dataset.tabId;
+        if (sqlTabs.some((item) => item.id === id)) activateSqlTab(id);
         break;
       }
       case "tab-save": {
@@ -10551,7 +10602,16 @@ export function mountUi() {
         }
         break;
       case "copy-table-name":
-        if (activeTable?.table && await copyToClipboard(textCopyPayload(activeTable.table))) toast("已复制", activeTable.table);
+        if (activeTable?.table && await copyToClipboard(textCopyPayload(activeTable.table))) toast("已复制表名", activeTable.table);
+        break;
+      case "copy-info-name": {
+        const panel = $("#inspector-object");
+        const table = panel?.dataset.table;
+        if (table && await copyToClipboard(textCopyPayload(table))) toast("已复制表名", table);
+        break;
+      }
+      case "copy-table-qualified":
+        if (activeTable?.table && await copyToClipboard(textCopyPayload(qualifiedTableName(activeTable)))) toast("已复制限定名", qualifiedTableName(activeTable));
         break;
       case "compare-from-schema":
         compareState.source = { connectionId: activeConnectionId, schema: activeSchema || defaultSchemaFor(activeConnectionId) };
@@ -11699,6 +11759,21 @@ export function mountUi() {
     if (event.target.closest?.("#sql-tab-strip") || event.target.classList?.contains("tabbar-spacer")) newQueryTab();
   });
 
+  // Navicat-style: with a table selected in the tree or object list, ⌘C copies its name.
+  // Text selections, inputs, Monaco and the result grid keep their own copy behavior.
+  document.addEventListener("keydown", async (event) => {
+    if (event.defaultPrevented || event.altKey || event.shiftKey || !(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "c") return;
+    if (!activeTable?.table) return;
+    const active = document.activeElement;
+    if (active?.closest?.("input, textarea, [contenteditable='true'], .monaco-editor, .grid-wrap, .context-menu, .modal-content")) return;
+    if (window.getSelection()?.toString()) return;
+    const objectsActive = $("#view-objects")?.classList.contains("active");
+    const inSidebar = active?.closest?.(".sidebar");
+    if (!objectsActive && !inSidebar) return;
+    event.preventDefault();
+    if (await copyToClipboard(textCopyPayload(activeTable.table))) toast("已复制表名", activeTable.table);
+  });
+
   document.addEventListener("contextmenu", (event) => {
     const tabElement = event.target.closest?.(".sql-tab");
     if (!tabElement || event.target.closest("[data-close-sql-tab]")) return;
@@ -11781,6 +11856,7 @@ export function mountUi() {
   applyThemePreference(themePreference());
   bindObjectsList();
   bindGridEvents();
+  bindTabStripEvents();
   bindPanelResizers();
   document.addEventListener("input", (event) => {
     if (event.target.closest?.(".designer-grid, .designer-list")) onDesignerInput(event);

@@ -82,6 +82,9 @@
 [data-theme="dark"] .tb-more:hover { background: #212a36; color: #c6d2e0; }
 [data-theme="dark"] .tab-strip-menu { border-left-color: #2c3644; color: #8b98a9; }
 [data-theme="dark"] .tab-strip-menu:hover { background: #212a36; color: #c6d2e0; }
+[data-theme="dark"] .tab-scroll { border-color: #2c3644; color: #8b98a9; }
+[data-theme="dark"] .tab-scroll:hover:not(:disabled) { background: #212a36; color: #c6d2e0; }
+[data-theme="dark"] .context-menu .tab-switch-item.is-active { background: #1d2c40; color: #8fb4e8; }
 /* Floating menus keep a quiet hairline in dark; the mirrored light ring reads as a focus outline. */
 [data-theme="dark"] .context-menu,
 [data-theme="dark"] .app-menu-popover { border-color: #333e4e; }
@@ -104,3 +107,7 @@
 [data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: #5b6a85; }
 :root[data-theme="dark"] { scrollbar-color: #46536a transparent; }
 [data-theme="dark"] ::selection { background: #2b4c74; color: #eaf2fb; }
+
+/* Brand plate: the derived mirror only remaps the old single-gradient plate; the layered sheen
+   and bevel need their own dark tuning so the mark keeps its depth on dark chrome. */
+[data-theme="dark"] .welcome-mark { background: radial-gradient(120% 90% at 18% 8%, rgba(255, 255, 255, .22), rgba(255, 255, 255, 0) 46%), linear-gradient(150deg, #eda831, #d97c12 42%, #b45309 72%, #8a3d06); box-shadow: 0 10px 26px rgba(0, 0, 0, .5), 0 2px 6px rgba(0, 0, 0, .4), inset 0 1px 0 rgba(255, 255, 255, .28), inset 0 -3px 8px rgba(60, 20, 4, .4); }

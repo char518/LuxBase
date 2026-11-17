@@ -1499,7 +1499,21 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .tab-strip-menu:hover { background: #e3e7ee; color: #526785; }
 .tabbar-spacer { flex: 1; min-width: 0; }
 .tool-tab { max-width: 164px; }
-.sql-tab-strip { flex: 0 1 auto; }
+.sql-tab-strip { flex: 0 1 auto; min-width: 88px; }
+/* No query tabs: the strip takes no space, so the new-query button hugs the pinned tab. */
+.sql-tab-strip:empty { display: none; }
+/* Tabs share the available width evenly (Chrome-style): they shrink together until the
+   88px floor, only then does the strip scroll with explicit buttons. */
+.workspace-tab.sql-tab { flex: 1 1 0; min-width: 88px; max-width: 180px; }
+.sql-tab .tab-title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sql-tab .tab-svg, .sql-tab .tab-close, .sql-tab .tab-dirty { flex: none; }
+.tab-scroll { width: 24px; height: 34px; flex: none; display: grid; place-items: center; color: #5f6875; font-size: 15px; line-height: 1; border-right: 1px solid #dfe3ea; }
+.tab-scroll[data-tab-scroll="1"] { border-right: 0; border-left: 1px solid #dfe3ea; }
+.tab-scroll:hover:not(:disabled) { background: #e3e7ee; color: #526785; }
+.tab-scroll:disabled { opacity: .3; }
+.tab-scroll[hidden] { display: none !important; }
+.context-menu .tab-switch-item.is-active { color: #1d5bb5; font-weight: 600; background: #eef4fd; }
+.context-menu .tab-switch-item .tab-switch-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .objects-view.active { display: grid; grid-template-rows: 36px auto minmax(0, 1fr); }
 .objects-toolbar { display: flex; align-items: center; gap: 1px; padding: 0 9px; border-bottom: 1px solid #e5e8ee; background: #fafafb; }
@@ -1566,10 +1580,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .conn-pick b { color: #35465d; font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .conn-pick small { color: #99a5b5; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .welcome { max-width: 740px; margin-top: -34px; text-align: center; }
-.welcome-mark { display: inline-grid; place-items: center; width: 56px; height: 56px; margin-bottom: 12px; padding: 13px; border-radius: 15px; background: linear-gradient(150deg, #f6b23c, #d97706 55%, #b45309); box-shadow: 0 6px 20px rgba(180, 83, 9, .28), inset 0 1px 0 rgba(255, 255, 255, .35); color: #fff8ec; }
+.welcome-mark { display: inline-grid; place-items: center; width: 60px; height: 60px; margin-bottom: 12px; padding: 14px; border-radius: 16px; background: radial-gradient(120% 90% at 18% 8%, rgba(255, 255, 255, .42), rgba(255, 255, 255, 0) 46%), linear-gradient(150deg, #ffc46b, #f09a2e 42%, #d97706 72%, #b45309); box-shadow: 0 10px 26px rgba(180, 83, 9, .32), 0 2px 6px rgba(180, 83, 9, .22), inset 0 1px 0 rgba(255, 255, 255, .5), inset 0 -3px 8px rgba(124, 45, 18, .28); color: #fff8ec; }
 .welcome-mark svg { width: 100%; height: 100%; }
-.brand-lockup { display: inline-flex; align-items: center; gap: 15px; margin-bottom: 12px; }
-.brand-wordmark { font-size: 32px; font-weight: 650; letter-spacing: -.8px; color: #35465d; }
+.brand-lockup { display: inline-flex; align-items: center; gap: 16px; margin-bottom: 12px; }
+.brand-wordmark { font-size: 34px; font-weight: 650; letter-spacing: -.9px; color: #35465d; }
 .brand-wordmark b { font-weight: 800; color: #d97706; }
 .welcome h2 { margin: 6px 0 9px; color: #40536e; font-size: 22px; font-weight: 550; letter-spacing: -.5px; }
 .welcome > p { margin: 0; color: #a0a9b5; font-size: 12px; }
@@ -1646,6 +1660,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .info-title { min-width: 0; }
 .info-title h2 { margin: 0 0 5px; color: #3e5069; font-size: 16px; font-weight: 550; overflow-wrap: anywhere; }
 .info-title > span { color: #a5afbd; font-size: 11px; }
+.object-name-actions { display: inline-flex; gap: 2px; flex: none; align-self: center; margin-right: 4px; }
+.object-name-actions:empty { display: none; }
+.object-name-actions button { width: 22px; height: 22px; display: grid; place-items: center; border: 0; border-radius: 4px; background: transparent; color: #8792a1; cursor: pointer; padding: 0; }
+.object-name-actions button:hover { background: #e3e8ef; color: #2c3d53; }
+.object-name-actions button svg { width: 12px; height: 12px; }
 .info-location { display: grid; gap: 9px; margin-bottom: 24px; color: #718199; font-size: 11px; }
 .info-location > span { display: flex; align-items: center; gap: 7px; }
 .info-location svg { width: 14px; height: 14px; stroke: none; }
