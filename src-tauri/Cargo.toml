@@ -1,0 +1,79 @@
+[package]
+name = "luxbase"
+version = "2.1.0"
+description = "Production-minded multi-protocol database client"
+authors = ["charl"]
+license = "MIT"
+edition = "2021"
+rust-version = "1.80"
+default-run = "luxbase"
+
+[lib]
+name = "luxbase_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "luxbase"
+path = "src/main.rs"
+
+[[bin]]
+name = "luxbase-mcp"
+path = "src/bin/luxbase-mcp.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-os = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+tokio-util = "0.7"
+async-trait = "0.1"
+thiserror = "2"
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+futures = "0.3"
+base64 = "0.22"
+rand = "0.8"
+sha2 = "0.10"
+hex = "0.4"
+zeroize = "1"
+aes-gcm = "0.10"
+dirs = "6"
+parking_lot = "0.12"
+rusqlite = { version = "0.32", features = ["bundled", "chrono", "serde_json", "hooks", "column_decltype"] }
+r2d2 = "0.8"
+r2d2_sqlite = "0.25"
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "mysql", "postgres", "sqlite", "chrono", "uuid", "json", "bigdecimal", "tls-rustls-ring-native-roots"] }
+redis = { version = "0.27", default-features = false, features = ["tokio-comp", "tokio-rustls-comp", "cluster-async", "connection-manager"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "gzip"] }
+ssh2 = { version = "0.9", features = ["vendored-openssl"] }
+url = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+html-escape = "0.2"
+
+# keyring 3 silently falls back to an in-memory mock store unless a platform backend is enabled,
+# which would lose every saved password and the config encryption key on restart.
+[target.'cfg(target_os = "macos")'.dependencies]
+keyring = { version = "3", features = ["apple-native"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+keyring = { version = "3", features = ["windows-native"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+keyring = { version = "3", features = ["linux-native-sync-persistent", "crypto-rust"] }
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

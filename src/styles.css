@@ -1,0 +1,45 @@
+/* Theme and utilities only: Tailwind's preflight reset would override the shell stylesheet
+   (button, svg and list defaults) that ui/styles.css is written against. */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@theme {
+  --color-canvas: #f4f6fa;
+  --color-ink: #172033;
+  --color-accent: #176df5;
+  --color-panel: #ffffff;
+  --color-line: #e2e8f0;
+  --font-sans: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+  --font-mono: "SFMono-Regular", Menlo, monospace;
+}
+
+.app-react-root {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Monaco is moved into the SQL view's .editor-shell at mount time so it follows the layout and
+   hides together with the SQL view. */
+#monaco-editor-host {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+#monaco-editor-host:empty {
+  display: none;
+}
+
+.editor-empty-hint {
+  position: absolute;
+  top: 9px;
+  left: 50px;
+  right: 24px;
+  z-index: 3;
+  color: #9aa6b5;
+  font: 12.5px/1.75 "SFMono-Regular", "Cascadia Code", "Roboto Mono", Menlo, monospace;
+  pointer-events: none;
+}
+.editor-empty-hint[hidden] { display: none; }
+.editor-empty-hint b { color: #7d8ba0; font-weight: 600; }

@@ -1,0 +1,44 @@
+{
+  "name": "luxbase",
+  "version": "2.1.0",
+  "private": true,
+  "license": "MIT",
+  "author": "charl",
+  "description": "Production-minded multi-protocol database client shell built for Tauri 2.",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "build:production": "node scripts/build.js --production",
+    "install:latest": "npm run validate && node scripts/install-latest.js",
+    "dev": "vite --port 1420",
+    "start": "node main.js",
+    "screenshot": "node main.js --screenshot shots/now.png",
+    "audit:ui": "node scripts/audit-ui.js",
+    "audit:ledger": "node scripts/audit-ledger.js",
+    "audit:rust": "python3 scripts/audit-rust.py",
+    "validate": "node scripts/validate.js && node scripts/audit-ui.js && node scripts/audit-ledger.js && python3 scripts/audit-rust.py",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
+  },
+  "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
+    "@tauri-apps/api": "^2.8.0",
+    "@tauri-apps/plugin-dialog": "^2.8.4",
+    "html2canvas": "^1.4.1",
+    "monaco-editor": "^0.52.2",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.14",
+    "@tailwindcss/vite": "^4.1.14",
+    "@tauri-apps/cli": "^2.8.4",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "@vitejs/plugin-react": "^5.0.2",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.14",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.3"
+  }
+}

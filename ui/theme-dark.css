@@ -1,0 +1,106 @@
+/*
+  Dark appearance, hand-picked layer.
+
+  ui/theme-dark-auto.css mirrors every literal of ui/styles.css under [data-theme="dark"]; this
+  file owns the semantic tokens that mirror cannot infer (custom properties are skipped there) and
+  the few surfaces where a mechanical mapping is not enough: the gradient chrome, elevation
+  shadows, the accent ramp used behind white labels, and the code/console surfaces.
+
+  Loaded last, so an equal-specificity rule here wins over the derived mirror.
+*/
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f1319;
+  --surface: #171d26;
+  --surface-soft: #131922;
+  --surface-strong: #1d2531;
+  --surface-hover: #222b39;
+  --line: #2a3441;
+  --line-soft: #222a35;
+  --text: #e7ecf3;
+  --text-soft: #b4bfce;
+  --text-muted: #8a96a7;
+  --navy: #0b111c;
+  --navy-2: #131c2b;
+  --blue: #4d8dff;
+  --blue-dark: #6ba1ff;
+  --blue-soft: #16233a;
+  --teal: #2ec3ad;
+  --green: #3ec27c;
+  --green-soft: #12291f;
+  --amber: #e6a53a;
+  --amber-soft: #2b2114;
+  --red: #f06a76;
+  --red-soft: #2d171a;
+  --violet: #9d86f0;
+  --on-accent: #ffffff;
+  --code-bg: #10151d;
+  /* Sprite plates: the pane-toggle glyphs carry a hand-written white plate that reads as a blank
+     page on dark toolbar chrome. Presentation attributes cannot be selected inside a `<use>`
+     shadow tree, so the sprites read these tokens through `var()` with the light value as
+     fallback, and inheritance carries the dark value in. */
+  --icon-plate: #222b36;
+  --icon-band: #4d5c70;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .5);
+  --shadow-md: 0 18px 50px rgba(0, 0, 0, .62);
+}
+
+/* White labels sit on accent fills; the derived mirror keeps them, everything else about an
+   accent button has to be re-tuned because light mode darkens on hover and dark mode lifts. */
+[data-theme="dark"] .primary-button,
+[data-theme="dark"] .tool-button.primary { color: var(--on-accent); }
+
+[data-theme="dark"] .primary-button:hover { filter: brightness(1.12); }
+[data-theme="dark"] .primary-button:active { filter: brightness(.94); }
+
+/* Toolbar, sidebar and status strip are gradient chrome in light mode; a flat dark ramp with a
+   hairline reads better than an inverted gradient. */
+[data-theme="dark"] .toolbar { background: #191f28; border-bottom-color: #262f3b; }
+[data-theme="dark"] .app-shell { background: var(--bg); }
+[data-theme="dark"] .sidebar,
+[data-theme="dark"] .inspector { background: var(--surface-soft); }
+[data-theme="dark"] .tb-button { color: #a9b4c4; }
+[data-theme="dark"] .tb-button:hover { background: #232c38; color: #dfe6ef; }
+[data-theme="dark"] .tb-button.active { border-color: #35506f; background: #1c2b3d; color: #9cc4ff; }
+[data-theme="dark"] .tb-sep { background: #2a3441; }
+[data-theme="dark"] .tb-segment { border-color: #2c3644; background: #141a22; }
+[data-theme="dark"] .tb-seg-button { border-right-color: #2c3644; color: #9aa6b6; }
+[data-theme="dark"] .tb-seg-button:hover { background: #212a36; }
+[data-theme="dark"] .tb-seg-button.active { background: #2b3746; }
+/* The top-right cluster keeps its own opaque surface in dark so the appearance, pane and more
+   controls never read as transparent glyphs floating over the inspector below them. */
+[data-theme="dark"] .tb-right { border-color: #2c3644; background: #1a212b; box-shadow: 0 1px 2px rgba(0, 0, 0, .4); }
+[data-theme="dark"] .tb-right-sep { background: #2c3644; }
+[data-theme="dark"] .tb-right .tb-segment { border-color: #2c3644; background: #141a22; }
+[data-theme="dark"] .tb-theme-toggle { color: #b6c2d2; }
+[data-theme="dark"] .tb-theme-toggle:hover { background: #212a36; color: #e2e9f2; }
+[data-theme="dark"] .tb-theme-toggle .theme-glyph { color: #d9a63c; }
+[data-theme="dark"] .tb-theme-toggle[data-mode="dark"] .theme-glyph { color: #8fb4e8; }
+[data-theme="dark"] .tb-theme-toggle[data-follow="system"] .theme-glyph { color: #7ba6d4; }
+[data-theme="dark"] .tb-more { color: #8b98a9; }
+[data-theme="dark"] .tb-more:hover { background: #212a36; color: #c6d2e0; }
+[data-theme="dark"] .tab-strip-menu { border-left-color: #2c3644; color: #8b98a9; }
+[data-theme="dark"] .tab-strip-menu:hover { background: #212a36; color: #c6d2e0; }
+/* Floating menus keep a quiet hairline in dark; the mirrored light ring reads as a focus outline. */
+[data-theme="dark"] .context-menu,
+[data-theme="dark"] .app-menu-popover { border-color: #333e4e; }
+
+/* Code, console and DDL panes keep a deeper well than the panels around them. */
+[data-theme="dark"] .ddl-view,
+[data-theme="dark"] .compare-sql,
+[data-theme="dark"] .console-view,
+[data-theme="dark"] #monaco-editor-host { background: var(--code-bg); border-color: var(--line-soft); }
+[data-theme="dark"] .editor-empty-hint { color: #64748b; }
+[data-theme="dark"] .editor-empty-hint b { color: #8698ae; }
+
+/* Colourful document badges in the object tree (blue table headers, amber query sheets, green
+   database lids) stay light on dark chrome on purpose, the way macOS keeps file badges coloured
+   against a dark sidebar; only the neutral plates behind them follow --icon-plate. */
+
+/* Scrollbars and selection belong to the palette in dark too: the mirrored thumb landed near
+   black on a near-black track, i.e. invisible until hovered. */
+[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #46536a; }
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: #5b6a85; }
+:root[data-theme="dark"] { scrollbar-color: #46536a transparent; }
+[data-theme="dark"] ::selection { background: #2b4c74; color: #eaf2fb; }

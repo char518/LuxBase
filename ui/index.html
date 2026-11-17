@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
+  <title>LuxBase</title>
+  <style>
+    /* Painted before any stylesheet or script runs, so a dark launch never flashes the light
+       background. The values mirror --bg in ui/styles.css and ui/theme-dark.css. */
+    html { background: #f5f5f7; }
+    html[data-theme="dark"] { background: #0f1319; }
+  </style>
+  <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./theme-dark-auto.css" />
+  <link rel="stylesheet" href="./theme-dark.css" />
+  <script src="./theme-preload.js"></script>
+</head>
+<body>
+  <svg class="sprite" aria-hidden="true">
+    <symbol id="brand-luxbase" viewBox="0 0 24 24"><path d="M7 3.4h3.6v12.2h9v2.6H7Z" fill="currentColor" stroke="none"/><path d="M13.2 3.4 19.8 10h-6.6Z" fill="currentColor" stroke="none" opacity=".82"/><path d="M7 19.6h12.8v2.4H7Z" fill="currentColor" stroke="none" opacity=".5"/></symbol>
+    <symbol id="proto-mysql" viewBox="0 0 24 24"><path d="M6.2 12.6C7.2 7.4 11 4.6 16.8 4.2c-1.9 2-2.9 4-3.3 6.4 2.3.3 4.2 1 5.7 2Z" fill="currentColor" stroke="none"/><path d="M3.4 15.6c2-1.5 4-1.5 6 0s4 1.5 6 0 4-1.5 5.2 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M3.4 18.8c2-1.5 4-1.5 6 0s4 1.5 6 0 4-1.5 5.2 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".6"/></symbol>
+    <symbol id="proto-postgres" viewBox="0 0 24 24"><path d="M12 3.4c-4 0-7 2.7-7 6.3 0 2.3 1.2 4.2 3 5.3v3.6c0 .9.7 1.6 1.6 1.6.9 0 1.6-.7 1.6-1.6v-2.8h1.6v2.8c0 .9.7 1.6 1.6 1.6.9 0 1.6-.7 1.6-1.6V15c1.8-1.1 3-3 3-5.3 0-3.6-3-6.3-7-6.3Z" fill="currentColor" stroke="none"/><path d="M17 9.6c1.6.8 2.3 2.4 1.6 4.2-.5 1.3-1.5 2-2.6 2.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="9.4" cy="8.6" r="1.15" fill="currentColor" opacity=".35"/></symbol>
+    <symbol id="proto-sqlite" viewBox="0 0 24 24"><path d="M20.2 3.6c-6.4.3-11.6 3.6-13.8 9.2-1 2.6-1.2 4.9-1.1 6.4 1.5.1 3.8-.1 6.4-1.1 5.6-2.2 8.9-7.4 9.2-13.8Z" fill="currentColor" stroke="none"/><path d="M5.6 18.6C9.2 13 13.6 8.6 19 5.2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".45"/><path d="M4 20.4c.6-1 1.2-1.9 1.6-2.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="proto-redis" viewBox="0 0 24 24"><path d="M12 2.4l9 4.3-9 4.3-9-4.3Z" fill="currentColor" stroke="none"/><path d="M3 11.2l9 4.3 9-4.3v2.3l-9 4.3-9-4.3Z" fill="currentColor" stroke="none" opacity=".78"/><path d="M3 15.9l9 4.3 9-4.3v2.3l-9 4.3-9-4.3Z" fill="currentColor" stroke="none" opacity=".5"/></symbol>
+    <symbol id="proto-es" viewBox="0 0 24 24"><circle cx="6" cy="6.6" r="2.7" fill="currentColor" stroke="none"/><circle cx="18" cy="6.6" r="2.7" fill="currentColor" stroke="none"/><circle cx="12" cy="17.4" r="2.7" fill="currentColor" stroke="none"/><path d="M8.7 6.6h6.6M7.2 8.9l3.4 6M16.8 8.9l-3.4 6" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="7.5" ry="3"/><path d="M4.5 5v6c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3V5"/><path d="M4.5 11v6c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-6"/></symbol>
+    <symbol id="i-terminal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 4 3-4 3M13 15h4"/></symbol>
+    <symbol id="i-compare" viewBox="0 0 24 24"><path d="M8 4v16M16 4v16M4 8h8M12 16h8"/><circle cx="8" cy="8" r="2"/><circle cx="16" cy="16" r="2"/></symbol>
+    <symbol id="i-transfer" viewBox="0 0 24 24"><path d="M3 7h11M3 12h14M3 17h11"/><path d="m17 9 3 3-3 3"/></symbol>
+    <symbol id="i-sync" viewBox="0 0 24 24"><path d="M4 9h9M11 6l3 3-3 3M20 15h-9M13 18l-3-3 3-3"/><path d="M4 13v2M20 9V7"/></symbol>
+    <symbol id="i-audit" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v5h4M9 11h7M9 15h7M9 19h4"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+    <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 3h12l2 2v16H5z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-4-4 4 4 4-4M4 20h16"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 21V9m-4 4 4-4 4 4M4 4h16"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6.1 8a7 7 0 0 1 11.7-1L20 12M4 12l2.2 5a7 7 0 0 0 11.7-1"/></symbol>
+    <symbol id="i-table" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M3 9h18M9 9v11M15 9v11"/></symbol>
+    <symbol id="i-view" viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/></symbol>
+    <symbol id="i-query" viewBox="0 0 24 24"><path d="M5 4h14v16H5z"/><path d="m8 9 2 2-2 2M12 14h4"/></symbol>
+    <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m11 12 8-8M15 8l3 3M17 6l3 3"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 5 3 8.5 7 10 4-1.5 7-5 7-10V6z"/><path d="m9 12 2 2 4-5"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="i-warning" viewBox="0 0 24 24"><path d="M12 3 2.5 20h19z"/><path d="M12 9v5M12 17.2v.2"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+    <symbol id="i-theme" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+    <symbol id="i-sort" viewBox="0 0 24 24"><path d="m8 7 4-4 4 4M12 3v14M8 17l4 4 4-4"/></symbol>
+    <symbol id="i-filter" viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></symbol>
+    <symbol id="i-export" viewBox="0 0 24 24"><path d="M12 15V3m-4 4 4-4 4 4"/><path d="M4 14v7h16v-7"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="12" rx="1"/><path d="M16 8V4H5v12h3"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="m7 7 10 10M17 7 7 17"/></symbol>
+    <symbol id="i-arrow-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-panel-left" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 10l-2 2 2 2"/></symbol>
+    <symbol id="i-panel-right" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.6v.2"/></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24"><path d="m8 7-5 5 5 5M16 7l5 5-5 5M13.5 5l-3 14"/></symbol>
+    <symbol id="i-wand" viewBox="0 0 24 24"><path d="m4 20 11-11M14 4v2M19 9h2M17.5 5.5l1.4-1.4M18 4l2 2M9 4.5V6M20 14h-1.5"/><path d="m13.5 7.5 3 3"/></symbol>
+    <symbol id="i-explain" viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="5" rx="1"/><rect x="14" y="15" width="7" height="5" rx="1"/><rect x="14" y="4" width="7" height="5" rx="1"/><path d="M6.5 9v8.5H14M10 6.5h4"/></symbol>
+    <symbol id="i-tx" viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h7"/><path d="m15 15 2.5 2.5L22 13"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M3.5 14.5h17M9.5 9.5v10"/></symbol>
+
+    <!-- Colour toolbar icons (Navicat-style); explicit paint overrides the stroke-only defaults. -->
+    <symbol id="t-connection" viewBox="0 0 28 28"><path d="M6.2 21.8 9.6 18.4" stroke="#8b95a7" stroke-width="2.4" stroke-linecap="round"/><path d="M10.4 11.2 16.8 17.6 15 19.4a4.6 4.6 0 0 1-6.4 0l-.1-.1a4.6 4.6 0 0 1 0-6.4z" fill="#8b95a7" stroke="none"/><path d="m13.2 9.9 2.6-2.6M18.1 14.8l2.6-2.6" stroke="#8b95a7" stroke-width="2.4" stroke-linecap="round"/><path d="m11.2 10.4 6.4 6.4" stroke="#6f7a8e" stroke-width="2" stroke-linecap="round"/><circle cx="20.6" cy="20.6" r="5.2" fill="#22b35e" stroke="#fff" stroke-width="1.4"/><path d="M20.6 18.1v5M18.1 20.6h5" stroke="#fff" stroke-width="1.9" stroke-linecap="round"/></symbol>
+    <symbol id="t-query" viewBox="0 0 28 28"><rect x="4.5" y="3.5" width="15.5" height="19.5" rx="2.6" style="fill: var(--icon-plate,#fff)" stroke="#9aa5b6" stroke-width="1.4"/><path d="M4.5 6.1a2.6 2.6 0 0 1 2.6-2.6h10.3A2.6 2.6 0 0 1 20 6.1V8.6H4.5z" fill="#3b82f6" stroke="none"/><path d="M8 12.6h8.5M8 16.2h6" stroke="#b9c3d1" stroke-width="1.6" stroke-linecap="round"/><circle cx="20.6" cy="20.6" r="5.2" fill="#22b35e" stroke="#fff" stroke-width="1.4"/><path d="M20.6 18.1v5M18.1 20.6h5" stroke="#fff" stroke-width="1.9" stroke-linecap="round"/></symbol>
+    <symbol id="t-table" viewBox="0 0 28 28"><rect x="3.8" y="4.8" width="20.4" height="18.4" rx="3" style="fill: var(--icon-plate,#fff)" stroke="#3b82f6" stroke-width="1.4"/><path d="M3.8 7.8a3 3 0 0 1 3-3h14.4a3 3 0 0 1 3 3v3.4H3.8z" fill="#3b82f6" stroke="none"/><path d="M4.5 17.1h19M10.6 11.2v11.3M17.3 11.2v11.3" stroke="#a7c6fb" stroke-width="1.3"/></symbol>
+    <symbol id="t-view" viewBox="0 0 28 28"><path d="M4.4 15 6.9 8.6A2 2 0 0 1 8.8 7.3h1.5M23.6 15l-2.5-6.4a2 2 0 0 0-1.9-1.3h-1.5" stroke="#2f6fe4" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.8" cy="17.2" r="4.6" fill="#e3edff" stroke="#2f6fe4" stroke-width="2"/><circle cx="19.2" cy="17.2" r="4.6" fill="#e3edff" stroke="#2f6fe4" stroke-width="2"/><path d="M13.3 16.5q.7-1 1.4 0" stroke="#2f6fe4" stroke-width="1.9" stroke-linecap="round"/></symbol>
+    <symbol id="t-user" viewBox="0 0 28 28"><path d="M5.2 23.8c.9-5 4.5-8 8.8-8s7.9 3 8.8 8z" fill="#4f8ef7" stroke="none"/><circle cx="14" cy="9.6" r="4.9" fill="#f6b04b" stroke="none"/><path d="M9.3 8.6a4.8 4.8 0 0 1 9.4 0c-1.7.6-3.4-.2-4.7-1.4-1.3 1.2-3 2-4.7 1.4z" fill="#8a4b20" stroke="none"/></symbol>
+    <symbol id="t-saved" viewBox="0 0 28 28"><rect x="8.2" y="3.4" width="14.6" height="17.4" rx="2.3" fill="#ffe4c4" stroke="#ef8a2b" stroke-width="1.3"/><rect x="5.2" y="7" width="14.6" height="17.6" rx="2.3" style="fill: var(--icon-plate,#fff)" stroke="#3b82f6" stroke-width="1.4"/><path d="M8.7 12.2h7.6M8.7 15.8h7.6M8.7 19.4h4.6" stroke="#8fb6f9" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="t-import" viewBox="0 0 28 28"><path d="M5 16.8v4.6A2.6 2.6 0 0 0 7.6 24h12.8a2.6 2.6 0 0 0 2.6-2.6v-4.6" stroke="#8b95a7" stroke-width="2.1" stroke-linecap="round"/><path d="M14 4v12.6" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round"/><path d="m9 11.9 5 5 5-5" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="t-export" viewBox="0 0 28 28"><path d="M5 16.8v4.6A2.6 2.6 0 0 0 7.6 24h12.8a2.6 2.6 0 0 0 2.6-2.6v-4.6" stroke="#8b95a7" stroke-width="2.1" stroke-linecap="round"/><path d="M14 17V4.4" stroke="#ea7a16" stroke-width="2.5" stroke-linecap="round"/><path d="m9 9.3 5-5 5 5" stroke="#ea7a16" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="t-transfer" viewBox="0 0 28 28"><rect x="2.4" y="6.6" width="8.6" height="14.8" rx="2.2" fill="#dcf6f1" stroke="#0f9f8f" stroke-width="1.4"/><rect x="17" y="6.6" width="8.6" height="14.8" rx="2.2" fill="#e8f1ff" stroke="#1d6ff5" stroke-width="1.4"/><path d="M11.4 14h4.4" stroke="#ea7a16" stroke-width="1.9" stroke-linecap="round"/><path d="m14.4 11.4 2.6 2.6-2.6 2.6" stroke="#ea7a16" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+    <symbol id="t-sync" viewBox="0 0 28 28"><rect x="2.4" y="6.6" width="8.6" height="14.8" rx="2.2" fill="#ece6ff" stroke="#7a5ad8" stroke-width="1.4"/><rect x="17" y="6.6" width="8.6" height="14.8" rx="2.2" fill="#dcf6f1" stroke="#0f9f8f" stroke-width="1.4"/><path d="M11.6 11.6h5.6M14.8 9l2.6 2.6-2.6 2.6M16.4 16.4h-5.6M13.2 19l-2.6-2.6 2.6-2.6" stroke="#1d6ff5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+    <symbol id="t-compare" viewBox="0 0 28 28"><rect x="3.4" y="4.4" width="9.2" height="19.2" rx="2.2" fill="#dcf6f1" stroke="#0f9f8f" stroke-width="1.4"/><rect x="15.4" y="4.4" width="9.2" height="19.2" rx="2.2" fill="#ece6ff" stroke="#7a5ad8" stroke-width="1.4"/><path d="M6.2 9.4h3.6M6.2 13h3.6M6.2 16.6h2.4" stroke="#0f9f8f" stroke-width="1.5" stroke-linecap="round"/><path d="M18.2 9.4h3.6M18.2 13h3.6M18.2 16.6h3.6M18.2 20.2h2.4" stroke="#7a5ad8" stroke-width="1.5" stroke-linecap="round"/></symbol>
+    <symbol id="t-console" viewBox="0 0 28 28"><rect x="3.4" y="4.8" width="21.2" height="18.4" rx="3.4" fill="#283548" stroke="none"/><path d="M3.4 8.2a3.4 3.4 0 0 1 3.4-3.4h14.4a3.4 3.4 0 0 1 3.4 3.4v.6H3.4z" fill="#3b4a62" stroke="none"/><path d="m8 12.2 3.4 3-3.4 3" stroke="#5eead4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.6 18.6h6" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="t-audit" viewBox="0 0 28 28"><path d="M14 3.4 22.6 6.6v6.5c0 5.4-3.6 9.7-8.6 11.5-5-1.8-8.6-6.1-8.6-11.5V6.6z" fill="#efe9ff" stroke="#7a5ad8" stroke-width="1.6" stroke-linejoin="round"/><path d="m9.9 14 2.9 2.9 5.4-5.6" stroke="#7a5ad8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="t-auto" viewBox="0 0 28 28"><circle cx="14" cy="14" r="7.6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M14 6.4a7.6 7.6 0 0 1 0 15.2z" fill="currentColor" stroke="none"/><path d="M14 3.2v2.2M14 22.6v2.2M3.2 14h2.2M22.6 14h2.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+    <symbol id="t-sun" viewBox="0 0 28 28"><circle cx="14" cy="14" r="5.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M14 3.4v3M14 21.6v3M3.4 14h3M21.6 14h3M6.5 6.5l2.1 2.1M19.4 19.4l2.1 2.1M21.5 6.5l-2.1 2.1M8.6 19.4l-2.1 2.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="t-moon" viewBox="0 0 28 28"><path d="M20.8 17.6A8.6 8.6 0 0 1 10.4 7.2a8.6 8.6 0 1 0 10.4 10.4z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+    <symbol id="t-more" viewBox="0 0 28 28"><circle cx="7.5" cy="14" r="2.1" fill="#7d8798" stroke="none"/><circle cx="14" cy="14" r="2.1" fill="#7d8798" stroke="none"/><circle cx="20.5" cy="14" r="2.1" fill="#7d8798" stroke="none"/></symbol>
+    <symbol id="t-pane-left" viewBox="0 0 28 28"><rect x="4" y="6" width="20" height="16" rx="3" style="fill: var(--icon-plate,#fff)" stroke="#7d8798" stroke-width="1.6"/><path d="M5 7.2h5.2v13.6H5z" style="fill: var(--icon-band,#b6bfcc)" stroke="none"/><path d="M10.6 6.6v14.8" stroke="#7d8798" stroke-width="1.4"/></symbol>
+    <symbol id="t-pane-right" viewBox="0 0 28 28"><rect x="4" y="6" width="20" height="16" rx="3" style="fill: var(--icon-plate,#fff)" stroke="#7d8798" stroke-width="1.6"/><path d="M17.8 7.2H23v13.6h-5.2z" style="fill: var(--icon-band,#b6bfcc)" stroke="none"/><path d="M17.4 6.6v14.8" stroke="#7d8798" stroke-width="1.4"/></symbol>
+
+    <!-- Small colour object icons for the tree, object list and info pane. -->
+    <symbol id="o-db" viewBox="0 0 16 16"><path d="M2.4 3.9v8.2c0 1.2 2.5 2.1 5.6 2.1s5.6-.9 5.6-2.1V3.9z" fill="#23a75b" stroke="none"/><ellipse cx="8" cy="3.9" rx="5.6" ry="2.1" fill="#4fd385" stroke="none"/><path d="M2.4 8.1c0 1.2 2.5 2.1 5.6 2.1s5.6-.9 5.6-2.1" stroke="#8be8b2" stroke-width=".9"/></symbol>
+    <symbol id="o-db-off" viewBox="0 0 16 16"><path d="M2.4 3.9v8.2c0 1.2 2.5 2.1 5.6 2.1s5.6-.9 5.6-2.1V3.9z" fill="#a4adbb" stroke="none"/><ellipse cx="8" cy="3.9" rx="5.6" ry="2.1" fill="#c7cdd7" stroke="none"/><path d="M2.4 8.1c0 1.2 2.5 2.1 5.6 2.1s5.6-.9 5.6-2.1" stroke="#dde1e8" stroke-width=".9"/></symbol>
+    <symbol id="o-table" viewBox="0 0 16 16"><rect x="1.6" y="2.6" width="12.8" height="10.8" rx="1.8" style="fill: var(--icon-plate,#fff)" stroke="#3b82f6" stroke-width="1.1"/><path d="M1.6 4.4a1.8 1.8 0 0 1 1.8-1.8h9.2a1.8 1.8 0 0 1 1.8 1.8V6H1.6z" fill="#3b82f6" stroke="none"/><path d="M2.1 9.7h11.8M6 6v6.9M10 6v6.9" stroke="#9ec0fa" stroke-width=".9"/></symbol>
+    <symbol id="o-view" viewBox="0 0 16 16"><path d="M2.2 8.6 3.8 4.6M13.8 8.6l-1.6-4" stroke="#2f6fe4" stroke-width="1.3" stroke-linecap="round"/><circle cx="4.8" cy="9.8" r="2.8" fill="#e3edff" stroke="#2f6fe4" stroke-width="1.3"/><circle cx="11.2" cy="9.8" r="2.8" fill="#e3edff" stroke="#2f6fe4" stroke-width="1.3"/><path d="M7.6 9.4q.4-.6.8 0" stroke="#2f6fe4" stroke-width="1.2"/></symbol>
+    <symbol id="o-query" viewBox="0 0 16 16"><rect x="2.8" y="1.8" width="10.4" height="12.4" rx="1.7" style="fill: var(--icon-plate,#fff)" stroke="#ef8a2b" stroke-width="1.1"/><path d="M5.2 5.6h5.6M5.2 8.2h5.6M5.2 10.8h3.4" stroke="#f3a65c" stroke-width="1.1" stroke-linecap="round"/></symbol>
+    <symbol id="o-open" viewBox="0 0 16 16"><path d="M1.8 4.6a1.4 1.4 0 0 1 1.4-1.4h3l1.3 1.4h5a1.4 1.4 0 0 1 1.4 1.4v1.2H1.8z" fill="#f5b83d" stroke="none"/><path d="M1.6 12.4 3 7.4a1 1 0 0 1 1-.7h10.4a.8.8 0 0 1 .8 1l-1.3 4.6a1 1 0 0 1-1 .7H2.4a.8.8 0 0 1-.8-.6z" fill="#fcd36b" stroke="none"/></symbol>
+    <symbol id="o-design" viewBox="0 0 16 16"><path d="M10.6 2.6 13.4 5.4 6 12.8l-3.4.6.6-3.4z" fill="#dbe8ff" stroke="#2f6fe4" stroke-width="1.2" stroke-linejoin="round"/><path d="m9.4 3.8 2.8 2.8" stroke="#2f6fe4" stroke-width="1.2"/></symbol>
+    <symbol id="o-new" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2" fill="#22b35e" stroke="none"/><path d="M8 5v6M5 8h6" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="o-delete" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2" fill="#ef4b4b" stroke="none"/><path d="M5 8h6" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="o-import" viewBox="0 0 16 16"><path d="M2.6 9.6v2.4c0 .8.6 1.4 1.4 1.4h8c.8 0 1.4-.6 1.4-1.4V9.6" stroke="#8b95a7" stroke-width="1.3" stroke-linecap="round"/><path d="M8 2.4v7.2M5.3 7 8 9.7 10.7 7" stroke="#16a34a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="o-export" viewBox="0 0 16 16"><path d="M2.6 9.6v2.4c0 .8.6 1.4 1.4 1.4h8c.8 0 1.4-.6 1.4-1.4V9.6" stroke="#8b95a7" stroke-width="1.3" stroke-linecap="round"/><path d="M8 9.6V2.4M5.3 5 8 2.3 10.7 5" stroke="#ea7a16" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  </svg>
+
+  <div class="app-shell">
+    <header class="toolbar" data-tauri-drag-region>
+      <div class="toolbar-lights" data-tauri-drag-region></div>
+      <div class="tb-group" data-tauri-drag-region>
+        <button class="tb-button" data-action="new-connection" title="新建连接 (⌘N)"><svg class="tb-icon"><use href="#t-connection"/></svg><span>连接</span></button>
+        <button class="tb-button" data-action="new-query" title="新建查询 (⌘T)"><svg class="tb-icon"><use href="#t-query"/></svg><span>新建查询</span></button>
+      </div>
+      <span class="tb-sep"></span>
+      <div class="tb-group" data-tauri-drag-region>
+        <button class="tb-button" data-action="show-objects" data-category="table" title="表"><svg class="tb-icon"><use href="#t-table"/></svg><span>表</span></button>
+        <button class="tb-button" data-action="show-objects" data-category="view" title="视图"><svg class="tb-icon"><use href="#t-view"/></svg><span>视图</span></button>
+        <button class="tb-button" data-action="show-objects" data-category="query" title="已保存的查询"><svg class="tb-icon"><use href="#t-saved"/></svg><span>查询</span></button>
+        <button class="tb-button" data-action="users" title="用户与权限"><svg class="tb-icon"><use href="#t-user"/></svg><span>用户</span></button>
+      </div>
+      <span class="tb-sep"></span>
+      <div class="tb-group" data-tauri-drag-region>
+        <button class="tb-button" data-action="import" title="导入数据"><svg class="tb-icon"><use href="#t-import"/></svg><span>导入</span></button>
+        <button class="tb-button" data-action="export" title="导出数据"><svg class="tb-icon"><use href="#t-export"/></svg><span>导出</span></button>
+        <button class="tb-button" data-action="view-transfer" data-tool-view="transfer" title="数据传输 (⌘5)"><svg class="tb-icon"><use href="#t-transfer"/></svg><span>数据传输</span></button>
+        <button class="tb-button" data-action="view-sync" data-tool-view="sync" title="数据同步 (⌘6)"><svg class="tb-icon"><use href="#t-sync"/></svg><span>数据同步</span></button>
+        <button class="tb-button" data-action="view-compare" data-tool-view="compare" title="结构比较 (⌘3)"><svg class="tb-icon"><use href="#t-compare"/></svg><span>结构比较</span></button>
+        <button class="tb-button" data-action="view-console" data-tool-view="console" title="命令控制台 (⌘2)"><svg class="tb-icon"><use href="#t-console"/></svg><span>命令行</span></button>
+        <button class="tb-button" data-action="view-audit" data-tool-view="audit" title="审计日志 (⌘4)"><svg class="tb-icon"><use href="#t-audit"/></svg><span>审计</span></button>
+      </div>
+      <div class="tb-spacer" data-tauri-drag-region></div>
+      <div class="tb-right">
+        <button class="tb-theme-toggle" data-action="cycle-theme" title="切换深色/浅色外观" aria-label="切换深色/浅色外观"><svg class="theme-glyph" aria-hidden="true"><use id="theme-toggle-icon" href="#t-sun"/></svg><span id="theme-toggle-label">浅色</span></button>
+        <span class="tb-right-sep"></span>
+        <div class="tb-segment">
+          <button class="tb-seg-button" data-action="toggle-sidebar" title="显示/隐藏连接面板 (⌘B)"><svg class="tb-icon small"><use href="#t-pane-left"/></svg></button>
+          <button class="tb-seg-button" data-action="toggle-inspector" title="显示/隐藏信息面板 (⌥⌘I)"><svg class="tb-icon small"><use href="#t-pane-right"/></svg></button>
+        </div>
+        <button class="tb-more" data-action="more-menu" title="更多" aria-label="更多"><svg class="tb-icon small"><use href="#t-more"/></svg></button>
+      </div>
+    </header>
+
+    <div class="main-layout">
+      <aside class="sidebar">
+        <div class="sidebar-head">
+          <h1>连接</h1>
+          <div class="head-buttons">
+            <button class="square-button" data-action="new-connection" title="新建连接 (⌘N)"><svg><use href="#i-plus"/></svg></button>
+            <button class="square-button" data-action="refresh-connections" title="刷新"><svg><use href="#i-refresh"/></svg></button>
+          </div>
+        </div>
+        <div class="connection-list" id="connection-list">
+          <div class="empty-connections"><strong>还没有数据库连接</strong><span>点击“新建连接”，测试通过后保存即可。</span></div>
+        </div>
+        <div class="sidebar-search">
+          <svg><use href="#i-search"/></svg>
+          <input id="connection-search" aria-label="搜索连接或对象" placeholder="搜索连接、库或表 (⌘K)" spellcheck="false" />
+          <span class="search-count">0</span>
+        </div>
+        <div class="panel-resizer" data-panel-resize="sidebar" tabindex="0" role="separator" aria-orientation="vertical" aria-label="连接面板宽度，方向键调整" title="拖动或方向键调整宽度"></div>
+      </aside>
+
+      <main class="workspace">
+        <div class="workspace-tabbar" role="tablist">
+          <button class="workspace-tab pinned-tab active" data-workspace="objects" title="对象 (⌘1)"><svg class="tab-svg"><use href="#i-grid"/></svg><span class="tab-title">对象</span></button>
+          <div class="sql-tab-strip" id="sql-tab-strip"></div>
+          <button class="new-tab" data-action="new-query" title="新建查询 (⌘T)"><svg><use href="#i-plus"/></svg></button>
+          <button class="tab-strip-menu" data-action="tab-menu" title="标签页操作：关闭其他 / 关闭左侧 / 关闭右侧 / 关闭全部" aria-label="标签页操作"><svg><use href="#i-chevron-down"/></svg></button>
+          <div class="tabbar-spacer"></div>
+          <button class="workspace-tab tool-tab" data-workspace="redis" hidden><span class="protocol-mini redis"><svg aria-hidden="true"><use href="#proto-redis"/></svg></span><span class="tab-title">Redis 键空间</span><span class="tab-close" data-close-tool="redis" title="关闭">×</span></button>
+          <button class="workspace-tab tool-tab" data-workspace="es" hidden><span class="protocol-mini es"><svg aria-hidden="true"><use href="#proto-es"/></svg></span><span class="tab-title">Elasticsearch</span><span class="tab-close" data-close-tool="es" title="关闭">×</span></button>
+          <button class="workspace-tab tool-tab" data-workspace="transfer" hidden><svg class="tab-svg"><use href="#i-transfer"/></svg><span class="tab-title">数据传输</span><span class="tab-close" data-close-tool="transfer" title="关闭">×</span></button>
+          <button class="workspace-tab tool-tab" data-workspace="sync" hidden><svg class="tab-svg"><use href="#i-sync"/></svg><span class="tab-title">数据同步</span><span class="tab-close" data-close-tool="sync" title="关闭">×</span></button>
+          <button class="workspace-tab tool-tab" data-workspace="compare" hidden><svg class="tab-svg"><use href="#i-compare"/></svg><span class="tab-title">结构比较</span><span class="tab-close" data-close-tool="compare" title="关闭">×</span></button>
+          <button class="workspace-tab tool-tab" data-workspace="console" hidden><svg class="tab-svg"><use href="#i-terminal"/></svg><span class="tab-title">命令控制台</span><span class="tab-close" data-close-tool="console" title="关闭">×</span></button>
+          <button class="workspace-tab tool-tab" data-workspace="audit" hidden><svg class="tab-svg"><use href="#i-audit"/></svg><span class="tab-title">审计日志</span><span class="tab-close" data-close-tool="audit" title="关闭">×</span></button>
+          <button class="workspace-tab tool-tab" data-workspace="settings" hidden><svg class="tab-svg"><use href="#i-settings"/></svg><span class="tab-title">设置</span><span class="tab-close" data-close-tool="settings" title="关闭">×</span></button>
+        </div>
+
+        <div class="workspace-body">
+          <section class="view objects-view active" id="view-objects">
+            <div class="objects-toolbar">
+              <button class="ot-button" data-action="object-open" data-needs-selection><svg><use href="#o-open"/></svg><span data-object-label="open">打开表</span></button>
+              <button class="ot-button" data-action="object-design" data-needs-selection data-table-only><svg><use href="#o-design"/></svg>设计表</button>
+              <button class="ot-button" data-action="object-new" data-table-only><svg><use href="#o-new"/></svg>新建表</button>
+              <button class="ot-button" data-action="object-drop" data-needs-selection data-table-only><svg><use href="#o-delete"/></svg>删除表</button>
+              <span class="ot-sep"></span>
+              <button class="ot-button" data-action="import" data-table-only><svg><use href="#o-import"/></svg>导入</button>
+              <button class="ot-button" data-action="export"><svg><use href="#o-export"/></svg>导出</button>
+              <button class="ot-button" data-action="query-history" hidden><svg><use href="#i-audit"/></svg>执行历史</button>
+              <span class="toolbar-spacer"></span>
+              <button class="ot-button icon" data-action="object-refresh" title="刷新"><svg><use href="#i-refresh"/></svg></button>
+              <label class="ot-search"><svg><use href="#i-search"/></svg><input id="object-filter" placeholder="搜索对象" spellcheck="false" aria-label="搜索对象" /></label>
+            </div>
+            <div class="objects-scope" id="objects-scope"></div>
+            <div class="objects-list" id="objects-list" tabindex="0"></div>
+          </section>
+
+          <section class="view sql-view" id="view-sql">
+            <div class="editor-pane">
+              <div class="pane-toolbar">
+                <div class="run-cluster" role="group" aria-label="执行">
+                  <button class="pt-button run-inline" data-action="run" title="运行（⌘↵；选中文本时只运行选中部分）"><svg><use href="#i-play"/></svg>运行</button>
+                  <button class="pt-button" data-action="stop" title="停止 (⌘.)"><svg><use href="#i-stop"/></svg>停止</button>
+                  <button class="pt-button" data-action="explain" title="查看执行计划"><svg><use href="#i-explain"/></svg>解释</button>
+                  <button class="pt-button" data-action="transaction" title="把编辑器中的全部语句放进一个事务运行，任一失败整体回滚"><svg><use href="#i-tx"/></svg>事务运行</button>
+                </div>
+                <span class="pt-sep"></span>
+                <div class="query-context">
+                  <label class="context-select" title="查询使用的连接"><svg class="ctx-icon"><use href="#t-connection"/></svg><select id="query-connection" aria-label="连接"><option value="">选择连接…</option></select></label>
+                  <label class="context-select" title="查询默认使用的数据库"><svg class="ctx-icon"><use href="#o-db"/></svg><select id="query-schema" aria-label="数据库"><option value="">—</option></select></label>
+                </div>
+                <span class="pt-sep"></span>
+                <button class="pt-button" data-action="save" title="保存查询 (⌘S)"><svg><use href="#i-save"/></svg>保存</button>
+                <button class="pt-button" data-action="format" title="美化 SQL"><svg><use href="#i-wand"/></svg>美化 SQL</button>
+                <span class="toolbar-spacer"></span>
+                <div class="editor-title"><strong id="query-title">查询 1</strong><span class="muted-text" id="query-state">新查询</span></div>
+                <span class="param-pill" title="SQL 中的 $1、? 等占位符会在执行前逐个输入，按参数绑定发送">$n 参数</span>
+                <button class="tiny-icon" data-action="editor-options" title="编辑器选项"><svg><use href="#i-more"/></svg></button>
+              </div>
+              <div class="editor-shell">
+                <div class="editor-gutter" aria-hidden="true">
+                  <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span>
+                </div>
+                <pre class="code-editor" tabindex="0" aria-label="SQL 编辑器"><code><span class="sql-comment">-- 最近高价值订单（使用绑定参数）</span>
+<span class="sql-key">SELECT</span> o.id, o.customer_id, c.name <span class="sql-key">AS</span> customer,
+       o.total, o.status, o.created_at
+<span class="sql-key">FROM</span> <span class="sql-table">orders</span> o
+<span class="sql-key">JOIN</span> <span class="sql-table">customers</span> c <span class="sql-key">ON</span> c.id = o.customer_id
+<span class="sql-key">WHERE</span> o.created_at &gt;= <span class="sql-param">$1</span>
+  <span class="sql-key">AND</span> o.total &gt; <span class="sql-param">$2</span>
+<span class="sql-key">ORDER BY</span> o.created_at <span class="sql-key">DESC</span>
+<span class="sql-key">LIMIT</span> <span class="sql-number">500</span>;</code><span class="editor-cursor"></span></pre>
+                <div class="autocomplete-hint">
+                  <span class="hint-key">⌘</span><span class="hint-key">↵</span>
+                  运行查询
+                </div>
+              </div>
+              <div class="editor-footer">
+                <div><span class="smart-chip"><svg><use href="#i-shield"/></svg>参数绑定已强制</span><span class="status-text">MySQL 方言 · UTF-8</span><button class="editor-problems" id="editor-problems" hidden title="跳转到第一个问题"></button></div>
+                <span>Ln 1, Col 1</span>
+              </div>
+            </div>
+
+            <div class="pane-splitter" data-panel-resize="editor" tabindex="0" role="separator" aria-orientation="horizontal" aria-label="编辑器高度，方向键调整" title="拖动或方向键调整编辑器高度"></div>
+
+            <div class="result-pane">
+              <div class="table-toolbar">
+                <strong class="table-toolbar-title" id="table-toolbar-title">表</strong>
+                <button class="ghost-button" data-action="table-refresh" title="刷新"><svg><use href="#i-refresh"/></svg>刷新</button>
+                <div class="filter-dropdown" id="table-filter-dropdown">
+                  <button class="ghost-button" data-action="table-filter-toggle" id="table-filter-button" title="筛选与排序" aria-haspopup="true" aria-expanded="false"><svg><use href="#i-filter"/></svg>筛选<span class="filter-active-dot" hidden></span></button>
+                  <div class="filter-panel" id="table-filter-panel" hidden>
+                    <div class="filter-panel-head"><strong>筛选条件</strong><span class="filter-hint">连接符选 OR 开启新分组，组内为 AND</span></div>
+                    <div class="filter-conditions" id="filter-conditions"></div>
+                    <button class="filter-add" data-action="filter-add-condition"><svg><use href="#i-plus"/></svg>添加条件</button>
+                    <div class="filter-advanced">
+                      <label class="toolbar-field"><span>自定义 WHERE</span><input id="table-filter" spellcheck="false" placeholder="例如 status = 'paid' AND total > 100" /></label>
+                      <label class="toolbar-field narrow"><span>ORDER BY</span><input id="table-order" spellcheck="false" placeholder="例如 id DESC" /></label>
+                      <div class="filter-hint">填写“自定义 WHERE”时优先使用它，否则按上方条件组合。</div>
+                    </div>
+                    <div class="filter-panel-foot"><button class="ghost-button" data-action="table-clear-filter">清除</button><button class="primary-button small" data-action="table-apply-filter">应用</button></div>
+                  </div>
+                </div>
+                <button class="ghost-button" data-action="export-query-result" title="导出当前表结果为 CSV / JSON Lines"><svg><use href="#i-export"/></svg>导出</button>
+                <span class="toolbar-spacer"></span>
+                <button class="ghost-button" data-action="insert-row"><svg><use href="#i-plus"/></svg>新增行</button>
+                <button class="ghost-button" data-action="duplicate-row"><svg><use href="#i-copy"/></svg>复制行</button>
+                <button class="ghost-button" data-action="table-designer"><svg><use href="#i-table"/></svg>设计表</button>
+                <button class="ghost-button danger-text" data-action="batch-delete" title="删除选中行（点击行号选择整行）">删除行</button>
+              </div>
+              <div class="result-header">
+                <div class="result-tabs">
+                  <button class="result-tab active" data-result-tab="grid">结果 <span class="result-count">0</span></button>
+                  <button class="result-tab" data-result-tab="messages">消息 <span class="result-count gray">0</span></button>
+                  <button class="result-tab" data-result-tab="plan">执行计划</button>
+                </div>
+                <div class="result-actions">
+                  <span class="execution-time"><span class="live-dot idle"></span>—</span>
+                  <button class="tiny-icon" data-action="result-filter" title="在结果中查找"><svg><use href="#i-search"/></svg></button>
+                  <button class="tiny-icon" data-grid-copy="tsv-header" title="复制结果（含列名）"><svg><use href="#i-copy"/></svg></button>
+                  <button class="tiny-icon" title="查看完整单元格" data-action="cell-details"><svg><use href="#i-info"/></svg></button>
+                  <button class="ghost-button result-export" title="导出结果为 CSV / JSON Lines" data-action="export-query-result"><svg><use href="#i-export"/></svg>导出</button>
+                  <button class="tiny-icon" title="刷新" data-action="table-refresh"><svg><use href="#i-refresh"/></svg></button>
+                </div>
+              </div>
+
+              <div class="result-content active" data-result-content="grid">
+                <div class="grid-filter-bar" id="grid-filter-bar" hidden><svg><use href="#i-search"/></svg><input id="grid-filter-input" placeholder="在当前结果中查找（任意列包含该文本）" spellcheck="false" /><button class="tiny-icon" data-action="result-filter" title="关闭"><svg><use href="#i-close"/></svg></button></div>
+                <div class="grid-pending-bar" id="grid-pending-bar" hidden><svg><use href="#i-settings"/></svg><span id="grid-pending-count"></span><button class="ghost-button" data-action="grid-discard-edits">放弃</button><button class="primary-button small" data-action="grid-apply-edits">应用更改</button></div>
+                <div class="grid-wrap">
+                  <table class="data-grid">
+                    <thead>
+                      <tr><th class="row-number"></th><th>结果</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td colspan="2" class="empty-table">编写 SQL 后按 ⌘↵ 执行；结果会显示在这里。</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="grid-footer">
+                  <span class="grid-status"><span class="stream-icon idle"></span>尚未执行</span>
+                  <span class="grid-pager"><button disabled>‹</button><b>1</b><button disabled>›</button><span>每页 500 行</span></span>
+                </div>
+              </div>
+
+              <div class="result-content messages" data-result-content="messages">
+                <div class="empty-table">执行查询后在这里显示每条语句的结果、影响行数和耗时。</div>
+              </div>
+
+              <div class="result-content plan" data-result-content="plan">
+                <div class="empty-table">执行计划由当前 SQL 驱动返回；当前没有结果。</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="view redis-view" id="view-redis">
+            <div class="redis-head">
+              <div class="redis-key-title">
+                <span class="type-icon unknown large">?</span>
+                <div><div class="key-breadcrumb">Redis <span>/</span> 未选择 DB</div><h2 id="redis-key-name">未选择键</h2></div>
+              </div>
+              <div class="key-meta-strip">
+                <span><small>类型</small><b>—</b></span>
+                <span><small>TTL</small><b>—</b></span>
+                <span><small>内存</small><b>—</b></span>
+                <span><small>编码</small><b>—</b></span>
+                <span><small>元素</small><b>—</b></span>
+              </div>
+              <div class="key-actions">
+                <button class="ghost-button" data-action="redis-copy-key"><svg><use href="#i-copy"/></svg>复制键</button>
+                <button class="ghost-button" data-action="redis-create"><svg><use href="#i-plus"/></svg>新建键</button>
+                <button class="ghost-button" data-action="redis-refresh"><svg><use href="#i-refresh"/></svg>刷新</button>
+                <button class="ghost-button danger-text" data-action="redis-delete"><span class="mini-trash">×</span>删除键</button>
+              </div>
+            </div>
+            <div class="redis-tabs">
+              <button class="redis-tab active" data-redis-tab="value">值编辑器</button>
+              <button class="redis-tab" data-redis-tab="info">键信息</button>
+              <button class="redis-tab" data-redis-tab="console" data-open-console>原始命令</button>
+            </div>
+            <div class="redis-value-panel active" data-redis-content="value">
+              <div class="empty-table">从 Redis 连接树使用 SCAN 选择一个键后，按类型加载真实值编辑器。</div>
+            </div>
+            <div class="redis-value-panel" data-redis-content="info">
+              <div class="key-info-grid">
+                <div><span>键</span><code>—</code></div><div><span>类型</span><code>—</code></div>
+                <div><span>TTL</span><code>—</code></div><div><span>编码</span><code>—</code></div>
+                <div><span>长度</span><code>—</code></div><div><span>实例内存</span><code>—</code></div>
+                <div><span>命中率</span><code>—</code></div><div><span>主从状态</span><code>—</code></div>
+              </div>
+            </div>
+            <div class="redis-value-panel" data-redis-content="console">
+              <div class="redis-console">
+                <div class="redis-console-bar">
+                  <input id="redis-console-input" spellcheck="false" placeholder="例如 GET user:1 · HGETALL user:1 · INFO server · TTL key" />
+                  <button class="primary-button small" data-action="redis-console-run"><svg><use href="#i-play"/></svg>执行</button>
+                  <button class="ghost-button" data-action="redis-console-clear">清空</button>
+                </div>
+                <pre id="redis-console-output" class="redis-console-output"></pre>
+                <div class="filter-hint">对当前连接与所选 DB 执行，RESP 原样展示；KEYS 已禁用（用 SCAN），危险命令需二次确认。回车执行。</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="view es-view" id="view-es"></section>
+
+          <section class="view transfer-view" id="view-transfer"></section>
+
+          <section class="view sync-view" id="view-sync"></section>
+
+          <section class="view compare-view" id="view-compare"></section>
+
+          <section class="view console-view" id="view-console"></section>
+
+          <section class="view audit-view" id="view-audit">
+            <div class="view-heading">
+              <div><div class="eyebrow">APPEND-ONLY LEDGER</div><h2>审计日志</h2><p>每次连接、执行、DDL、危险命令与数据导出都会写入本地只追加账本。</p></div>
+              <span class="immutable-chip"><svg><use href="#i-lock"/></svg>不可删除</span>
+            </div>
+            <div class="audit-summary">
+              <div><small>当前载入事件</small><b id="audit-total">0</b><span>最近 50 条</span></div>
+              <div><small>危险操作</small><b id="audit-danger">0</b><span>来自驱动审计</span></div>
+              <div><small>失败操作</small><b id="audit-failed">0</b><span>来自驱动审计</span></div>
+              <div><small>本地账本</small><b>SHA-256</b><span>点击验证哈希链</span></div>
+            </div>
+            <div class="audit-table-wrap">
+              <table class="audit-table" data-resize-key="audit">
+                <thead><tr><th>时间<span class="col-resizer" data-gcol="0"></span></th><th>连接<span class="col-resizer" data-gcol="1"></span></th><th>事件<span class="col-resizer" data-gcol="2"></span></th><th>命令摘要<span class="col-resizer" data-gcol="3"></span></th><th>影响行数<span class="col-resizer" data-gcol="4"></span></th><th>结果<span class="col-resizer" data-gcol="5"></span></th><th>记录<span class="col-resizer" data-gcol="6"></span></th></tr></thead>
+                <tbody id="audit-rows">
+                  <tr><td colspan="7" class="empty-table">暂无审计记录</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="view empty-view" id="view-settings">
+            <div class="view-heading">
+              <div><div class="eyebrow">SECURITY & CONNECTIONS</div><h2>设置</h2><p>连接池、本地保险库、超时与审计策略。</p></div>
+              <button class="primary-button" data-action="new-connection">新建连接</button>
+            </div>
+            <div class="settings-grid">
+              <div class="setting-card"><div class="setting-icon"><svg><use href="#i-theme"/></svg></div><div><h3>外观</h3><p>浅色、深色或跟随 macOS 系统外观，选择后立即生效并记住。SQL 编辑器、弹窗和原生菜单一起换色。</p><div class="theme-choices" role="group" aria-label="外观模式"><button class="theme-choice" data-action="set-theme" data-theme-preference="system">跟随系统</button><button class="theme-choice" data-action="set-theme" data-theme-preference="light">浅色</button><button class="theme-choice" data-action="set-theme" data-theme-preference="dark">深色</button></div></div></div>
+              <div class="setting-card"><div class="setting-icon"><svg><use href="#i-lock"/></svg></div><div><h3>本地保险库</h3><p>数据库密码、SSH 密码与私钥口令加密保存在本机 LuxBase 数据目录，不再访问系统钥匙串。</p><span class="status-link" id="setting-vault">等待安全后端</span></div></div>
+              <div class="setting-card"><div class="setting-icon"><svg><use href="#i-database"/></svg></div><div><h3>连接池</h3><p>在“编辑连接”中按连接配置 min_idle、max_size、超时和生命周期。</p><button class="status-link" data-action="edit-connection">编辑当前连接策略</button></div></div>
+              <div class="setting-card"><div class="setting-icon"><svg><use href="#i-bolt"/></svg></div><div><h3>超时与取消</h3><p>查询超时在连接中配置；取消会终止底层操作，事务超时先回滚再释放连接。</p><button class="status-link" data-action="edit-connection">编辑当前连接超时</button></div></div>
+              <div class="setting-card"><div class="setting-icon"><svg><use href="#i-audit"/></svg></div><div><h3>审计账本</h3><p>SQLite 只追加模式，界面不提供删除入口。</p><button class="status-link" data-action="verify-audit">验证哈希链</button></div></div>
+            </div>
+          </section>
+        </div>
+      </main>
+
+      <aside class="inspector" id="inspector">
+        <div class="panel-resizer left" data-panel-resize="inspector" tabindex="0" role="separator" aria-orientation="vertical" aria-label="信息面板宽度，方向键调整" title="拖动或方向键调整宽度"></div>
+        <div class="inspector-switch" role="tablist">
+          <button class="active" data-inspector-tab="object" title="对象信息"><svg><use href="#i-info"/></svg>信息</button>
+          <button data-inspector-tab="ddl" title="建表语句"><svg><use href="#i-code"/></svg>DDL</button>
+          <button data-inspector-tab="health" title="连接状态"><svg><use href="#i-bolt"/></svg>连接</button>
+        </div>
+        <section class="inspector-panel inspector-object" data-inspector-panel="object" id="inspector-object">
+          <div class="info-empty" id="info-empty"><svg><use href="#i-info"/></svg><span>无信息</span><small>在左侧或对象列表中选择连接、数据库或表</small></div>
+          <div class="info-card" id="info-card" hidden>
+            <div class="info-hero">
+              <span class="info-icon" id="info-icon"></span>
+              <div class="info-title"><h2 id="object-name"></h2><span id="object-meta"></span></div>
+            </div>
+            <div class="info-location" id="info-location"></div>
+            <div class="info-props" id="object-stats"></div>
+          </div>
+        </section>
+        <section class="inspector-panel inspector-ddl" data-inspector-panel="ddl" hidden>
+          <div class="ddl-toolbar">
+            <span id="ddl-title">DDL</span>
+            <button class="tiny-icon" data-action="copy-ddl" title="复制 DDL"><svg><use href="#i-copy"/></svg></button>
+            <button class="tiny-icon" data-action="ddl-to-query" title="在新查询中打开"><svg><use href="#i-query"/></svg></button>
+            <button class="tiny-icon" data-action="refresh-ddl" title="刷新"><svg><use href="#i-refresh"/></svg></button>
+            <button class="tiny-text-button" data-action="table-designer">设计表</button>
+          </div>
+          <pre class="ddl-view" id="object-ddl"><span class="muted">选择表或视图后显示建表语句。</span></pre>
+        </section>
+        <div class="inspector-panel inspector-health" data-inspector-panel="health" hidden>
+        <div class="inspector-connection">
+          <div class="inspector-protocol"><span class="protocol-badge unknown">?</span><span class="pulse-ring"></span></div>
+          <div><strong id="inspector-connection-name">未选择连接</strong><span id="inspector-connection-status"><span class="health-dot muted"></span>等待连接</span></div>
+          <button class="tiny-icon" data-action="diagnostics"><svg><use href="#i-more"/></svg></button>
+        </div>
+        <div class="secure-stack" id="inspector-security">
+          <span><svg><use href="#i-lock"/></svg>安全状态待读取</span>
+        </div>
+        <section class="metric-section pool-section">
+          <div class="section-title"><span>连接池</span><span class="live-label">LIVE</span></div>
+          <div class="pool-visual">
+            <div class="donut"><div><b>—</b><span>total</span></div></div>
+            <div class="pool-legend"><span><i class="legend-active"></i>活动 <b>—</b></span><span><i class="legend-idle"></i>空闲 <b>—</b></span><span><i class="legend-free"></i>可用 <b>—</b></span></div>
+          </div>
+          <div class="metric-grid">
+            <div><span>Max size</span><b>—</b></div><div><span>Waiters</span><b>—</b></div>
+            <div><span>Timeouts</span><b>—</b></div><div><span>Acquired</span><b>—</b></div>
+          </div>
+        </section>
+        <section class="metric-section guardrails">
+          <div class="section-title"><span>生产护栏</span><span class="shield-mini"><svg><use href="#i-shield"/></svg></span></div>
+          <div class="guard-row"><svg><use href="#i-check"/></svg><span>SQL 参数绑定</span><b>强制</b></div>
+          <div class="guard-row"><svg><use href="#i-check"/></svg><span>事务取消回滚</span><b>启用</b></div>
+          <div class="guard-row"><svg><use href="#i-check"/></svg><span>危险命令确认</span><b>启用</b></div>
+        </section>
+        <div class="inspector-foot">
+          <span id="inspector-foot-text">尚未打开连接</span><button data-action="diagnostics">完整诊断 →</button>
+        </div>
+        </div>
+      </aside>
+    </div>
+
+    <footer class="statusbar">
+      <div class="status-left">
+        <span class="status-connection"><span class="health-dot muted"></span>未选择连接</span>
+        <span class="breadcrumb" id="status-breadcrumb"></span>
+      </div>
+      <span class="status-center" id="status-center"></span>
+      <div class="status-right">
+        <span id="status-cursor">Ln —, Col —</span>
+        <span class="status-item">Pool — / — / —</span>
+        <span class="secure-chip"><svg><use href="#i-lock"/></svg>本地保险库</span>
+      </div>
+    </footer>
+  </div>
+
+  <div class="toast-region" id="toast-region" aria-live="polite"></div>
+
+  <div class="modal-backdrop" id="modal-backdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-head"><div><div class="eyebrow" id="modal-eyebrow">NEW CONNECTION</div><h2 id="modal-title">新建数据库连接</h2></div><button class="modal-close" data-close-modal><svg><use href="#i-close"/></svg></button></div>
+      <div class="modal-content" id="modal-content"></div>
+    </div>
+  </div>
+
+  <div class="app-menu-popover" id="app-menu-popover" hidden></div>
+
+  <div class="context-menu" id="context-menu" role="menu" aria-label="上下文菜单" hidden>
+    <button data-action="new-query"><svg><use href="#i-query"/></svg>新建查询</button>
+    <button data-action="table-designer"><svg><use href="#i-table"/></svg>设计表</button>
+    <button data-action="export"><svg><use href="#i-export"/></svg>导出数据</button>
+    <span class="context-sep"></span>
+    <button class="danger-item" data-action="redis-delete"><svg><use href="#i-warning"/></svg>删除</button>
+  </div>
+
+  <!-- The packaged macOS preview is loaded from file://. A classic deferred
+       script avoids WebKit's file-origin module restrictions, which otherwise
+       leave the static shell visible but with no click handlers attached. -->
+  <script src="./app.js" defer></script>
+</body>
+</html>

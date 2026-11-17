@@ -1,0 +1,52 @@
+LuxBase 2.1.0 安装说明
+========================
+开发并构建：charl
+适用平台：macOS 12.0+（Apple Silicon / aarch64）
+
+一、安装步骤
+1. 双击打开本 DMG 镜像。
+2. 将 LuxBase.app 拖入右侧 Applications 文件夹快捷方式。
+3. 弹出镜像（可选），从启动台或 Applications 打开 LuxBase。
+
+二、首次打开被系统拦截怎么办
+本包为本地自签名（未做 Apple 公证），首次打开可能提示"无法验证开发者"。任选其一：
+  方式 A：在 Applications 中右键 LuxBase.app → 打开 → 再点"打开"。
+  方式 B：终端执行
+         xattr -dr com.apple.quarantine /Applications/LuxBase.app
+         然后正常双击打开。
+若仍被拦截：系统设置 → 隐私与安全性 → 仍要打开。
+
+三、快速上手
+1. 左上"连接"新建连接：MySQL / PostgreSQL / SQLite / Redis / Elasticsearch。
+   密码与配置加密保存在本机 LuxBase 数据目录的本地保险库，不上传任何服务器。
+2. 左侧展开连接浏览库表 / Redis 键空间 / ES 索引；双击表打开数据。
+3. 查询：⌘T 新建查询，⌘↵ 执行；结果可双击编辑（单表含主键）、导出 CSV/JSONL。
+4. Redis：键空间按 DB 浏览，值按类型编辑；二进制值提供编码/可读片段/Hex 预览；
+   "原始命令"tab 可直接执行 Redis 命令（危险命令二次确认）。
+5. Elasticsearch：索引管理、文档浏览/编辑、Mapping、别名、REST 控制台。
+6. 所有危险操作（删库/删表/FLUSH/批量删除等）均二次确认并写入只追加审计日志。
+
+四、AI Agent 接入（MCP，可选）
+安装包内附带 luxbase-mcp：一个本地 stdio MCP server，让 Claude / Qoder 等 AI Agent
+直接查询你在 LuxBase 里保存的连接（密码不出本地保险库，不会暴露给 Agent）。
+在 Agent 的 MCP 配置中添加（路径以实际安装位置为准）：
+  {
+    "mcpServers": {
+      "luxbase": {
+        "command": "/Applications/LuxBase.app/Contents/MacOS/luxbase-mcp",
+        "args": []
+      }
+    }
+  }
+默认只读：list_connections / list_tables / describe_table / query（单条 SELECT 等，
+默认 100 行、最多 1000 行）/ redis_scan / redis_get / es_search。
+需要允许 Agent 写库时，把 args 改为 ["--allow-writes"]，会多出 execute 工具
+（单条写语句）。所有 Agent 查询与写入都会写入 LuxBase 审计日志。
+
+五、数据与卸载
+- 连接配置、查询草稿、审计日志保存在：~/Library/Application Support/com.luxbase.app/
+- 卸载：删除 Applications 中的 LuxBase.app；如需清空数据再删除上述目录。
+
+六、关于
+LuxBase 由 charl 开发并构建。
+版本 2.1.0 · 多协议数据库客户端（MySQL / PostgreSQL / SQLite / Redis / Elasticsearch）。

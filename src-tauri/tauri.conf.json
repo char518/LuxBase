@@ -1,0 +1,74 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "LuxBase",
+  "version": "2.1.0",
+  "identifier": "com.luxbase.app",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build:production",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "LuxBase",
+        "label": "main",
+        "width": 1600,
+        "height": 1000,
+        "minWidth": 1180,
+        "minHeight": 720,
+        "resizable": true,
+        "fullscreen": false,
+        "decorations": true,
+        "transparent": false,
+        "focus": false,
+        "visible": true,
+        "alwaysOnBottom": false,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost",
+      "dangerousDisableAssetCspModification": [
+        "style-src"
+      ]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "category": "DeveloperTool",
+    "publisher": "charl",
+    "copyright": "© 2026 charl · 开发并构建：charl",
+    "shortDescription": "Multi-protocol database client by charl",
+    "longDescription": "A production-minded database client for MySQL, PostgreSQL, SQLite, Redis and Elasticsearch. Developed and built by charl.",
+    "macOS": {
+      "signingIdentity": "-",
+      "minimumSystemVersion": "12.0",
+      "dmg": {
+        "background": "dmg-background.png",
+        "windowSize": {
+          "width": 660,
+          "height": 420
+        },
+        "appPosition": {
+          "x": 170,
+          "y": 150
+        },
+        "applicationFolderPosition": {
+          "x": 490,
+          "y": 150
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Frontend build output
+dist/
+build/
+
+# Rust / Tauri build output
+src-tauri/target/
+
+# Packaged applications and installers (built artifacts, not source)
+LuxBase.app/
+*.dmg
+
+# OS noise
+.DS_Store
+
+# Logs and local scratch
+*.log
