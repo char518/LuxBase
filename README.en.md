@@ -2,7 +2,7 @@
 
 [简体中文](README.md) | **English**
 
-A database client I built for myself and use every day — Navicat-style, but free and open source.
+**A free, open-source Navicat alternative (平替)** — a database client I built for myself and use every day.
 Written with Tauri 2 + Rust + React/Monaco, it handles **MySQL, PostgreSQL, SQLite, Redis and Elasticsearch**, and ships a small MCP server so AI assistants can query your databases too (without ever seeing your passwords).
 
 ![LuxBase main window](shots/baseline.png)
@@ -12,6 +12,20 @@ Written with Tauri 2 + Rust + React/Monaco, it handles **MySQL, PostgreSQL, SQLi
 Navicat is nice, but it's pricey — and I was constantly jumping between it, a Redis GUI and an ES console.
 So I wrote one tool that does all of it: query, edit, export, transfer and sync, in a single window.
 It's been my daily driver for a while now, and maybe it's useful to you too.
+
+## How it compares to Navicat
+
+| What you do in Navicat | In LuxBase |
+| --- | --- |
+| Connect to MySQL / PostgreSQL / SQLite | Same, plus Redis and Elasticsearch |
+| Browse, filter and edit table data | Double-click to edit cells; batch changes commit in one transaction with full rollback |
+| SQL queries, history, execution plans | Monaco editor + query history + execution plans |
+| Export results | CSV / JSON Lines, filenames include table and timestamp |
+| Data transfer / sync / structure compare | All included; keyset pagination + batched commits with rate and ETA for big tables |
+| Manage and migrate connections | Batch import/export in a passphrase-sealed envelope |
+| Price | Free, GPL-3.0 open source |
+
+**What you get on top of Navicat**: unified Redis/ES management, an MCP server so AI agents can query your databases, and fully open code you can change yourself.
 
 ## Things it does well
 

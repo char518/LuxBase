@@ -2,7 +2,7 @@
 
 **简体中文 | [English](README.en.md)**
 
-一个我自己在用的数据库客户端，Navicat 风格，但完全免费开源。
+**Navicat 的免费开源平替**：一个我自己天天在用的数据库客户端。
 用 Tauri 2 + Rust + React/Monaco 写的，支持 **MySQL、PostgreSQL、SQLite、Redis、Elasticsearch**，还顺手加了个 MCP server，让 AI 助手也能直接查你的库（密码不会给它）。
 
 ![LuxBase 主界面](shots/baseline.png)
@@ -12,6 +12,20 @@
 Navicat 好用是好用，但贵，而且我平时还要同时碰 Redis 和 ES，来回切工具很烦。
 所以干脆自己写一个：一个窗口管好几种库，查询、改数据、导数据、传输同步都在里面。
 现在它已经是我的日常工具了，发出来给有同样需求的人试试。
+
+## 和 Navicat 对照一下
+
+| 你平时在 Navicat 里做的事 | LuxBase 对应 |
+| --- | --- |
+| 连 MySQL / PostgreSQL / SQLite | 一样支持，还多了 Redis 和 Elasticsearch |
+| 表数据浏览、筛选、编辑 | 双击单元格直接改，多处修改一个事务提交、失败回滚 |
+| SQL 查询、执行历史、执行计划 | Monaco 编辑器 + 执行历史 + 执行计划 |
+| 结果导出 | 导出 CSV / JSON Lines，文件名带表名和时间 |
+| 数据传输 / 数据同步 / 结构比较 | 都有；大表走 keyset 分页 + 批量提交，带速率和 ETA |
+| 连接管理、导入导出 | 批量导入导出，口令加密打包，换机方便 |
+| 价格 | 免费，GPL-3.0 开源 |
+
+**比 Navicat 多出来的**：Redis / ES 一体化管理、MCP（让 AI 助手查库）、代码完全开放可以自己改。
 
 ## 好用的地方
 
