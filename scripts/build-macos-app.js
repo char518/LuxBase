@@ -23,27 +23,11 @@ const withDmg = process.argv.includes("--dmg");
 const universal = process.argv.includes("--universal");
 const targetDir = universal ? "universal-apple-darwin/release" : "release";
 const bundle = resolve(root, "src-tauri/target", targetDir, "bundle/macos", appName);
-const buildArgs = ["build", "--bundles", withDmg ? "app,dmg" : "app"];
-if (universal) buildArgs.push("--target", "universal-apple-darwin");
-const build = spawnSync(tauri, buildArgs, {
-  cwd: root,
-  stdio: "inherit",
-  env: process.env,
-});
-if (build.status !== 0) process.exit(build.status ?? 1);
-if (!existsSync(resolve(bundle, "Contents/MacOS"))) {
-  throw new Error(`Tauri did not produce ${bundle}`);
-}
-
-const verify = spawnSync("/usr/bin/codesign", ["--verify", "--deep", "--strict", bundle], {
-  stdio: "inherit",
-});
-if (verify.status !== 0) throw new Error("The Tauri bundle failed code-signature verification.");
-
-// Ship the MCP stdio bridge inside the bundle so agents can launch it directly.
 const cargo = process.env.CARGO || resolve(process.env.HOME || "", ".cargo/bin/cargo");
 let mcpBinary;
 if (universal) {
+  // Tauri's universal bundle copies every cargo bin from the universal target dir but
+  // only lipos the main binary itself, so merge luxbase-mcp before bundling.
   const mcpBuild = spawnSync(
     cargo,
     ["build", "--release", "--bin", "luxbase-mcp", "--target", "aarch64-apple-darwin", "--target", "x86_64-apple-darwin"],
@@ -65,7 +49,29 @@ if (universal) {
     { stdio: "inherit" },
   );
   if (lipo.status !== 0) process.exit(lipo.status ?? 1);
-} else {
+  // Tauri signs the bundle without --deep, so nested binaries must arrive pre-signed.
+  const signMcp = spawnSync("/usr/bin/codesign", ["--force", "--sign", "-", mcpBinary], { stdio: "inherit" });
+  if (signMcp.status !== 0) process.exit(signMcp.status ?? 1);
+}
+const buildArgs = ["build", "--bundles", withDmg ? "app,dmg" : "app"];
+if (universal) buildArgs.push("--target", "universal-apple-darwin");
+const build = spawnSync(tauri, buildArgs, {
+  cwd: root,
+  stdio: "inherit",
+  env: process.env,
+});
+if (build.status !== 0) process.exit(build.status ?? 1);
+if (!existsSync(resolve(bundle, "Contents/MacOS"))) {
+  throw new Error(`Tauri did not produce ${bundle}`);
+}
+
+const verify = spawnSync("/usr/bin/codesign", ["--verify", "--deep", "--strict", bundle], {
+  stdio: "inherit",
+});
+if (verify.status !== 0) throw new Error("The Tauri bundle failed code-signature verification.");
+
+// Ship the MCP stdio bridge inside the bundle so agents can launch it directly.
+if (!universal) {
   const mcpBuild = spawnSync(cargo, ["build", "--release", "--bin", "luxbase-mcp"], {
     cwd: resolve(root, "src-tauri"),
     stdio: "inherit",
@@ -102,7 +108,8 @@ const creditApp = (appPath) => {
     const set = spawnSync("/usr/libexec/PlistBuddy", ["-c", `Set :${key} ${credit}`, plist], { encoding: "utf8" });
     if (set.status !== 0) spawnSync("/usr/libexec/PlistBuddy", ["-c", `Add :${key} string ${credit}`, plist], { encoding: "utf8" });
   }
-  spawnSync("/usr/bin/codesign", ["--force", "--deep", "--sign", "-", appPath], { encoding: "utf8" });
+  const sign = spawnSync("/usr/bin/codesign", ["--force", "--deep", "--sign", "-", appPath], { encoding: "utf8" });
+  if (sign.status !== 0) throw new Error(`codesign failed for ${appPath}: ${sign.stderr || sign.stdout}`);
 };
 installMcp(destination);
 creditApp(destination);
@@ -137,8 +144,10 @@ if (withDmg) {
     run(["attach", "-nobrowse", "-mountpoint", mnt, rw]);
     try {
       cpSync(readme, resolve(mnt, "安装说明.txt"));
-      installMcp(resolve(mnt, "LuxBase.app"));
-      creditApp(resolve(mnt, "LuxBase.app"));
+      // codesign hits internal errors on universal binaries inside the mounted HFS+
+      // image, so ship the already-signed staged app instead of re-signing on the mount.
+      rmSync(resolve(mnt, "LuxBase.app"), { recursive: true, force: true });
+      cpSync(destination, resolve(mnt, "LuxBase.app"), { recursive: true, verbatimSymlinks: true });
     } finally {
       spawnSync(hdiutil, ["detach", mnt], { encoding: "utf8" });
     }
