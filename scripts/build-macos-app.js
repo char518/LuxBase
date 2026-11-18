@@ -8,7 +8,6 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const appName = "LuxBase.app";
 const tauri = resolve(root, "node_modules/.bin/tauri");
-const bundle = resolve(root, "src-tauri/target/release/bundle/macos", appName);
 const destination = resolve(root, appName);
 
 if (process.platform !== "darwin") {
@@ -21,7 +20,12 @@ if (!existsSync(tauri)) {
 }
 
 const withDmg = process.argv.includes("--dmg");
-const build = spawnSync(tauri, ["build", "--bundles", withDmg ? "app,dmg" : "app"], {
+const universal = process.argv.includes("--universal");
+const targetDir = universal ? "universal-apple-darwin/release" : "release";
+const bundle = resolve(root, "src-tauri/target", targetDir, "bundle/macos", appName);
+const buildArgs = ["build", "--bundles", withDmg ? "app,dmg" : "app"];
+if (universal) buildArgs.push("--target", "universal-apple-darwin");
+const build = spawnSync(tauri, buildArgs, {
   cwd: root,
   stdio: "inherit",
   env: process.env,
@@ -38,13 +42,38 @@ if (verify.status !== 0) throw new Error("The Tauri bundle failed code-signature
 
 // Ship the MCP stdio bridge inside the bundle so agents can launch it directly.
 const cargo = process.env.CARGO || resolve(process.env.HOME || "", ".cargo/bin/cargo");
-const mcpBuild = spawnSync(cargo, ["build", "--release", "--bin", "luxbase-mcp"], {
-  cwd: resolve(root, "src-tauri"),
-  stdio: "inherit",
-  env: process.env,
-});
-if (mcpBuild.status !== 0) process.exit(mcpBuild.status ?? 1);
-const mcpBinary = resolve(root, "src-tauri/target/release/luxbase-mcp");
+let mcpBinary;
+if (universal) {
+  const mcpBuild = spawnSync(
+    cargo,
+    ["build", "--release", "--bin", "luxbase-mcp", "--target", "aarch64-apple-darwin", "--target", "x86_64-apple-darwin"],
+    { cwd: resolve(root, "src-tauri"), stdio: "inherit", env: process.env },
+  );
+  if (mcpBuild.status !== 0) process.exit(mcpBuild.status ?? 1);
+  const universalDir = resolve(root, "src-tauri/target/universal-apple-darwin/release");
+  mkdirSync(universalDir, { recursive: true });
+  mcpBinary = resolve(universalDir, "luxbase-mcp");
+  const lipo = spawnSync(
+    "/usr/bin/lipo",
+    [
+      "-create",
+      resolve(root, "src-tauri/target/aarch64-apple-darwin/release/luxbase-mcp"),
+      resolve(root, "src-tauri/target/x86_64-apple-darwin/release/luxbase-mcp"),
+      "-output",
+      mcpBinary,
+    ],
+    { stdio: "inherit" },
+  );
+  if (lipo.status !== 0) process.exit(lipo.status ?? 1);
+} else {
+  const mcpBuild = spawnSync(cargo, ["build", "--release", "--bin", "luxbase-mcp"], {
+    cwd: resolve(root, "src-tauri"),
+    stdio: "inherit",
+    env: process.env,
+  });
+  if (mcpBuild.status !== 0) process.exit(mcpBuild.status ?? 1);
+  mcpBinary = resolve(root, "src-tauri/target/release/luxbase-mcp");
+}
 const installMcp = (appPath) => {
   cpSync(mcpBinary, resolve(appPath, "Contents/MacOS/luxbase-mcp"));
 };
@@ -80,7 +109,7 @@ creditApp(destination);
 console.log(`Built macOS application: ${destination}`);
 
 if (withDmg) {
-  const dmgDir = resolve(root, "src-tauri/target/release/bundle/dmg");
+  const dmgDir = resolve(root, "src-tauri/target", targetDir, "bundle/dmg");
   const dmgName = existsSync(dmgDir)
     ? readdirSync(dmgDir).find((entry) => entry.endsWith(".dmg"))
     : undefined;

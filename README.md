@@ -8,8 +8,8 @@
 One window for MySQL · PostgreSQL · SQLite · Redis · Elasticsearch — with a built-in MCP server for AI agents.
 
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
-[![Release](https://img.shields.io/badge/release-v2.1.0-brightgreen.svg)](https://github.com/char518/LuxBase/releases)
-[![Platform](https://img.shields.io/badge/platform-macOS%20·%20Apple%20Silicon-lightgrey.svg)](#install-macos-apple-silicon)
+[![Release](https://img.shields.io/badge/release-v2.2.0-brightgreen.svg)](https://github.com/char518/LuxBase/releases)
+[![Platform](https://img.shields.io/badge/platform-macOS%20·%20Universal-lightgrey.svg)](#install-macos)
 [![Tauri 2](https://img.shields.io/badge/Tauri-2-24C8DB.svg?logo=tauri&logoColor=white)](https://tauri.app)
 
 **English** | [简体中文](README.zh-CN.md)
@@ -70,9 +70,9 @@ The bundle includes `luxbase-mcp`, a local stdio MCP server. Once configured, AI
 
 Read-only by default: table metadata, single-statement SELECTs (100 rows default, 1000 max), Redis scans, ES searches. Set `"args": ["--allow-writes"]` to also expose an `execute` tool for single write statements. Every statement an agent runs is appended to the LuxBase audit log.
 
-## Install (macOS, Apple Silicon)
+## Install (macOS)
 
-1. Download `LuxBase_2.1.0_aarch64.dmg` from [Releases](https://github.com/char518/LuxBase/releases) and drag LuxBase.app into Applications.
+1. Download `LuxBase_2.2.0_universal.dmg` from [Releases](https://github.com/char518/LuxBase/releases) and drag LuxBase.app into Applications. One universal binary covers both Intel and Apple Silicon Macs (macOS 12+).
 2. The bundle is ad-hoc signed, not notarized. If macOS says the developer can't be verified: right-click → Open, or run
    ```bash
    xattr -dr com.apple.quarantine /Applications/LuxBase.app
@@ -110,7 +110,7 @@ LUXBASE_LIVE_REDIS="127.0.0.1|6379|password" cargo test --lib
 
 - No custom CA / mTLS settings for Redis yet; very large values can be previewed and copied but not fully edited.
 - Big-table optimizations are benchmarked at the 100k-row scale. I haven't had a real 100M-row database to push against — tell me how it goes if you do.
-- Only macOS Apple Silicon packages are published. Windows/Linux should be possible with Tauri; I just haven't had the time to verify.
+- macOS only for now — one universal binary for Intel and Apple Silicon. Windows/Linux should be possible with Tauri; I just haven't had the time to verify.
 
 ## Contributing
 
