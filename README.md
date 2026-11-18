@@ -1,46 +1,61 @@
+<div align="center">
+
+<img src="icon-source.png" width="120" alt="LuxBase logo" />
+
 # LuxBase
 
-**简体中文 | [English](README.en.md)**
+**The free, open-source Navicat alternative.**
+One window for MySQL · PostgreSQL · SQLite · Redis · Elasticsearch — with a built-in MCP server for AI agents.
 
-**Navicat 的免费开源平替**：一个我自己天天在用的数据库客户端。
-用 Tauri 2 + Rust + React/Monaco 写的，支持 **MySQL、PostgreSQL、SQLite、Redis、Elasticsearch**，还顺手加了个 MCP server，让 AI 助手也能直接查你的库（密码不会给它）。
+[![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
+[![Release](https://img.shields.io/badge/release-v2.1.0-brightgreen.svg)](https://github.com/char518/LuxBase/releases)
+[![Platform](https://img.shields.io/badge/platform-macOS%20·%20Apple%20Silicon-lightgrey.svg)](#install-macos-apple-silicon)
+[![Tauri 2](https://img.shields.io/badge/Tauri-2-24C8DB.svg?logo=tauri&logoColor=white)](https://tauri.app)
 
-![LuxBase 主界面](shots/baseline.png)
+**English** | [简体中文](README.zh-CN.md)
 
-## 为什么做这个
+![LuxBase main window](shots/baseline.png)
 
-Navicat 好用是好用，但贵，而且我平时还要同时碰 Redis 和 ES，来回切工具很烦。
-所以干脆自己写一个：一个窗口管好几种库，查询、改数据、导数据、传输同步都在里面。
-现在它已经是我的日常工具了，发出来给有同样需求的人试试。
+</div>
 
-## 和 Navicat 对照一下
+LuxBase is a database client I built for myself and use every day. It started because Navicat is great but pricey, and I kept juggling it with a Redis GUI and an ES console. So I wrote one tool that does all of it — query, edit, export, transfer, sync — in a single window. It's been my daily driver for a while now; maybe it's useful to you too.
 
-| 你平时在 Navicat 里做的事 | LuxBase 对应 |
+## LuxBase vs Navicat
+
+| What you do in Navicat | In LuxBase |
 | --- | --- |
-| 连 MySQL / PostgreSQL / SQLite | 一样支持，还多了 Redis 和 Elasticsearch |
-| 表数据浏览、筛选、编辑 | 双击单元格直接改，多处修改一个事务提交、失败回滚 |
-| SQL 查询、执行历史、执行计划 | Monaco 编辑器 + 执行历史 + 执行计划 |
-| 结果导出 | 导出 CSV / JSON Lines，文件名带表名和时间 |
-| 数据传输 / 数据同步 / 结构比较 | 都有；大表走 keyset 分页 + 批量提交，带速率和 ETA |
-| 连接管理、导入导出 | 批量导入导出，口令加密打包，换机方便 |
-| 价格 | 免费，GPL-3.0 开源 |
+| Connect to MySQL / PostgreSQL / SQLite | Same, plus Redis and Elasticsearch |
+| Browse, filter and edit table data | Double-click to edit cells; batch changes commit in one transaction with full rollback |
+| SQL queries, history, execution plans | Monaco editor + query history + execution plans |
+| Export results | CSV / JSON Lines, filenames include table and timestamp |
+| Data transfer / sync / structure compare | All included; keyset pagination + batched commits with live rate and ETA |
+| Manage and migrate connections | Batch import/export in a passphrase-sealed envelope |
+| Price | Free, GPL-3.0 open source |
 
-**比 Navicat 多出来的**：Redis / ES 一体化管理、MCP（让 AI 助手查库）、代码完全开放可以自己改。
+**On top of that**: unified Redis/ES management, an MCP server so AI agents can query your databases, and fully open code you can change yourself.
 
-## 好用的地方
+## Protocol coverage
 
-- **查询写起来顺手**：Monaco 编辑器（就是 VS Code 那颗），多标签、筛选支持 AND/OR 混着来、结果一键导 CSV / JSONL，列宽随便拖。
-- **改数据不用写 UPDATE**：结果表格里双击就改，可以一口气改好几行好几列，确认后**一个事务提交，出错全部回滚**。BLOB 也有 HEX / 文本预览和编辑。
-- **Redis 很完整**：按 DB 浏览键空间，二进制键值自动识别（UTF-8 / GBK / hex / base64），还有内嵌命令控制台。键多的库也不会卡死。
-- **ES 也能管**：索引、mapping、别名、文档增删改、Query DSL、REST 控制台，基本够用。
-- **大表传输专门优化过**：keyset 分页 + 批量事务提交，进度、速度、预计剩余时间都看得到；可以选"先停索引、传完重建"，千万级以上的表会舒服很多。
-- **安全上比较较真**：密码 AES-256-GCM 加密存本机，不上传任何服务器；删库删表这类操作都要二次确认；所有操作进只追加的审计日志。
-- **连接可以带走**：批量导入导出，口令加密打包，换电脑很方便。
+| | MySQL | PostgreSQL | SQLite | Redis | Elasticsearch |
+| --- | :-: | :-: | :-: | :-: | :-: |
+| Browse & edit data | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Query console | SQL | SQL | SQL | Raw commands | Query DSL / REST |
+| Transfer & sync | ✓ | ✓ | ✓ | — | — |
+| Structure compare | ✓ | ✓ | ✓ | — | — |
 
-## 让 AI 助手帮你查库（MCP）
+## Highlights
 
-安装包里带了一个 `luxbase-mcp`，是个本地 MCP server。
-配好之后，Claude、Qoder 这类 AI 助手就能直接查你在 LuxBase 里存好的连接——**密码始终留在本地保险库，不会暴露给 AI**。
+- **A proper SQL workbench** — the Monaco editor (the same one VS Code uses), multiple tabs, filters with mixed AND/OR groups, one-click CSV / JSONL export, resizable columns everywhere.
+- **Edit data without writing UPDATEs** — double-click a result cell and type. Stage changes across as many rows and columns as you like, then apply everything in **one transaction; any failure rolls it all back**. BLOBs get HEX/text previews and editing too.
+- **Full-featured Redis** — browse keys per DB, binary-safe keys and values (UTF-8 / GBK / hex / base64), type-aware value editing, an embedded command console, and no freezing on huge keyspaces.
+- **Real Elasticsearch management** — indices, mappings, aliases, document CRUD, Query DSL and a REST console.
+- **Big-table transfers that don't hurt** — keyset pagination + batched transactional commits with live progress, rate and ETA. Optionally drop secondary indexes first and rebuild them afterwards; a lifesaver on very large tables.
+- **Security taken seriously** — credentials sealed with AES-256-GCM on your machine, never uploaded. Dangerous operations need confirmation, and everything lands in an append-only audit log.
+- **Connections travel with you** — batch import/export in a passphrase-sealed envelope, so moving machines is painless.
+
+## AI agent access (MCP)
+
+The bundle includes `luxbase-mcp`, a local stdio MCP server. Once configured, AI assistants like Claude or Qoder can query the connections you've saved in LuxBase — **your passwords stay inside the local vault and are never shared with the AI**.
 
 ```json
 {
@@ -53,36 +68,37 @@ Navicat 好用是好用，但贵，而且我平时还要同时碰 Redis 和 ES�
 }
 ```
 
-默认只读（查表结构、跑 SELECT、扫 Redis key、查 ES），想让它写数据就把 `args` 改成 `["--allow-writes"]`，会多一个 `execute` 工具（单条写语句）。
-AI 的每一条查询和写入，也都会记进 LuxBase 的审计日志。
+Read-only by default: table metadata, single-statement SELECTs (100 rows default, 1000 max), Redis scans, ES searches. Set `"args": ["--allow-writes"]` to also expose an `execute` tool for single write statements. Every statement an agent runs is appended to the LuxBase audit log.
 
-## 安装（macOS，Apple Silicon）
+## Install (macOS, Apple Silicon)
 
-1. 下载 `LuxBase_<版本>_aarch64.dmg`，把 LuxBase.app 拖进 Applications。
-2. 第一次打开如果提示"无法验证开发者"：右键 → 打开，或者终端跑一句
-   `xattr -dr com.apple.quarantine /Applications/LuxBase.app`。
-   （包是自签名的，没做 Apple 公证，介意的话可以自己从源码构建。）
-3. 新建连接就能用了。你的连接和密码都在本机 `~/Library/Application Support/com.luxbase.app/`。
+1. Download `LuxBase_2.1.0_aarch64.dmg` from [Releases](https://github.com/char518/LuxBase/releases) and drag LuxBase.app into Applications.
+2. The bundle is ad-hoc signed, not notarized. If macOS says the developer can't be verified: right-click → Open, or run
+   ```bash
+   xattr -dr com.apple.quarantine /Applications/LuxBase.app
+   ```
+   Prefer full control? [Build from source](#build-from-source) instead.
+3. Create a connection and you're in. Everything lives locally under `~/Library/Application Support/com.luxbase.app/`.
 
-DMG 里也附了一份中英双语安装说明。
+A bilingual (English/Chinese) install guide is included in the DMG.
 
-## 从源码跑起来
+## Build from source
 
-需要 Rust（stable）和 Node.js 20+：
+Requires Rust (stable) and Node.js 20+:
 
 ```bash
 npm install
-npm run validate                      # 静态检查和审计门禁
-node scripts/build-macos-app.js --dmg # 打出 app 和 DMG（含 luxbase-mcp）
+npm run validate                      # static checks and audit gates
+node scripts/build-macos-app.js --dmg # build the app and DMG (includes luxbase-mcp)
 ```
 
-跑测试：
+Run the tests:
 
 ```bash
 cd src-tauri && cargo test --lib
 ```
 
-还有一组连真实数据库的测试，**只在你明确指定的临时实例上跑**，建的表都带 `luxbase_qa_` 前缀：
+A live suite also exists, and it only runs against **throwaway servers you explicitly point it at**, using `luxbase_qa_`-prefixed tables:
 
 ```bash
 LUXBASE_LIVE_MYSQL="127.0.0.1|3306|user|password|testdb" cargo test --lib
@@ -90,14 +106,16 @@ LUXBASE_LIVE_POSTGRES="127.0.0.1|5432|user|password|testdb" cargo test --lib
 LUXBASE_LIVE_REDIS="127.0.0.1|6379|password" cargo test --lib
 ```
 
-## 说实话，现在的边界
+## Honest limitations
 
-- Redis 的自定义 CA / mTLS 还没做配置入口，超大值的全量编辑也没开放（能预览和复制）。
-- 大表优化我实测到 10 万行级别，亿级真实库还没机会压过，欢迎有条件的朋友试试告诉我。
-- 目前只打了 macOS Apple Silicon 的包，Windows / Linux 理论上 Tauri 都能出，但我还没精力验证。
+- No custom CA / mTLS settings for Redis yet; very large values can be previewed and copied but not fully edited.
+- Big-table optimizations are benchmarked at the 100k-row scale. I haven't had a real 100M-row database to push against — tell me how it goes if you do.
+- Only macOS Apple Silicon packages are published. Windows/Linux should be possible with Tauri; I just haven't had the time to verify.
 
-碰到问题或者想要什么功能，直接开 issue 就行，我看到会回。
+## Contributing
+
+Found a bug or missing something? [Open an issue](https://github.com/char518/LuxBase/issues) — I read them. Pull requests are welcome too.
 
 ## License
 
-[GPL-3.0](LICENSE) © 2026 charl。代码随便用，但用了就要开源：基于本项目修改或衍生的作品，也必须以 GPL-3.0 公开源码，不能闭源白嫖。LuxBase 名称和 logo 不在授权范围内，衍生作品请换成自己的品牌。
+[GPL-3.0](LICENSE) © 2026 charl. Use it freely, with one rule: derivative works must also be open-sourced under GPL-3.0 — no closed-source forks. The LuxBase name and logo are not covered by the license; use your own branding for derivatives.
