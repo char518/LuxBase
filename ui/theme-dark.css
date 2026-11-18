@@ -75,6 +75,11 @@
 [data-theme="dark"] .tb-right .tb-segment { border-color: #2c3644; background: #141a22; }
 [data-theme="dark"] .tb-theme-toggle { color: #b6c2d2; }
 [data-theme="dark"] .tb-theme-toggle:hover { background: #212a36; color: #e2e9f2; }
+[data-theme="dark"] .tb-lang-toggle { color: #b6c2d2; }
+[data-theme="dark"] .tb-lang-toggle:hover { background: #212a36; color: #e2e9f2; }
+[data-theme="dark"] .tb-lang-toggle .lang-glyph { color: #7ba6d4; }
+[data-theme="dark"] .tb-lang-toggle[data-lang="en"] .lang-glyph { color: #2ec3ad; }
+[data-theme="dark"] .tb-lang-toggle[data-lang="en"] #lang-toggle-label { color: #2ec3ad; }
 [data-theme="dark"] .tb-theme-toggle .theme-glyph { color: #d9a63c; }
 [data-theme="dark"] .tb-theme-toggle[data-mode="dark"] .theme-glyph { color: #8fb4e8; }
 [data-theme="dark"] .tb-theme-toggle[data-follow="system"] .theme-glyph { color: #7ba6d4; }

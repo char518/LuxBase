@@ -1414,6 +1414,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .toolbar-lights { position: absolute; top: 0; left: 0; right: 0; height: 25px; }
 .tb-group { display: flex; align-items: center; gap: 4px; flex: none; }
 .tb-button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; width: 65px; height: 60px; padding: 5px 4px; border: 1px solid transparent; border-radius: 7px; color: #535a67; font-size: 11px; white-space: nowrap; }
+html[lang="en"] .tb-button { width: auto; min-width: 56px; padding: 5px 8px; }
 .tb-button:hover { background: #e6e8ed; }
 .tb-button:active { background: #dce1e9; }
 .tb-button.active { border-color: #c8d8ed; background: #dfeaf9; color: #275d9d; }
@@ -1438,6 +1439,12 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .tb-theme-toggle.theme-flip .theme-glyph { animation: themeFlip .38s cubic-bezier(.34, 1.56, .64, 1); }
 @keyframes themeFlip { 0% { transform: rotate(-100deg) scale(.6); opacity: .2; } 100% { transform: rotate(0deg) scale(1); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .tb-theme-toggle.theme-flip .theme-glyph { animation: none; } .tb-theme-toggle:active { transform: none; } }
+.tb-lang-toggle { display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 6px; color: #5b6a7d; font-size: 11px; font-weight: 600; letter-spacing: .2px; transition: background .15s ease, color .15s ease, transform .12s ease; }
+.tb-lang-toggle:hover { background: #e2e6ec; color: #2d4058; }
+.tb-lang-toggle:active { transform: scale(.96); }
+.tb-lang-toggle .lang-glyph { width: 14px; height: 14px; color: #4d7ea8; transition: color .2s ease; }
+.tb-lang-toggle[data-lang="en"] .lang-glyph { color: #1fa893; }
+.tb-lang-toggle[data-lang="en"] #lang-toggle-label { color: #178f7d; }
 .theme-glyph { width: 14px; height: 14px; }
 .tb-more { display: grid; place-items: center; width: 30px; height: 28px; border-radius: 6px; color: #7b8494; }
 .tb-more:hover { background: #e2e6ec; color: #4d5a6e; }
