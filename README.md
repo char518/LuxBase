@@ -8,7 +8,7 @@
 One window for MySQL · PostgreSQL · SQLite · Redis · Elasticsearch — with a built-in MCP server for AI agents.
 
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
-[![Release](https://img.shields.io/badge/release-v2.2.0-brightgreen.svg)](https://github.com/char518/LuxBase/releases)
+[![Release](https://img.shields.io/badge/release-v2.3.0-brightgreen.svg)](https://github.com/char518/LuxBase/releases)
 [![Platform](https://img.shields.io/badge/platform-macOS%2012%2B-lightgrey.svg)](#install-macos)
 [![Tauri 2](https://img.shields.io/badge/Tauri-2-24C8DB.svg?logo=tauri&logoColor=white)](https://tauri.app)
 
@@ -73,8 +73,8 @@ Read-only by default: table metadata, single-statement SELECTs (100 rows default
 ## Install (macOS)
 
 1. Download the DMG for your Mac from [Releases](https://github.com/char518/LuxBase/releases), then drag LuxBase.app into Applications:
-   - **Apple Silicon (M1/M2/M3/M4)**: `LuxBase_2.2.0_aarch64.dmg`
-   - **Intel**: `LuxBase_2.2.0_x64.dmg`
+   - **Apple Silicon (M1/M2/M3/M4)**: `LuxBase_2.3.0_aarch64.dmg`
+   - **Intel**: `LuxBase_2.3.0_x64.dmg`
 2. The bundle is ad-hoc signed, not notarized. If macOS says the developer can't be verified: right-click → Open, or run
    ```bash
    xattr -dr com.apple.quarantine /Applications/LuxBase.app

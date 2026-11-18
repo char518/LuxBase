@@ -8,7 +8,7 @@
 一个窗口管好 MySQL · PostgreSQL · SQLite · Redis · Elasticsearch —— 还内置 MCP server，让 AI 助手也能查你的库。
 
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
-[![Release](https://img.shields.io/badge/release-v2.2.0-brightgreen.svg)](https://github.com/char518/LuxBase/releases)
+[![Release](https://img.shields.io/badge/release-v2.3.0-brightgreen.svg)](https://github.com/char518/LuxBase/releases)
 [![Platform](https://img.shields.io/badge/platform-macOS%2012%2B-lightgrey.svg)](#安装macos)
 [![Tauri 2](https://img.shields.io/badge/Tauri-2-24C8DB.svg?logo=tauri&logoColor=white)](https://tauri.app)
 
@@ -73,8 +73,8 @@ LuxBase 是我自己写、自己天天在用的数据库客户端。起因很简
 ## 安装（macOS）
 
 1. 到 [Releases](https://github.com/char518/LuxBase/releases) 按机型下载，然后把 LuxBase.app 拖进 Applications：
-   - **Apple Silicon（M1/M2/M3/M4）**：`LuxBase_2.2.0_aarch64.dmg`
-   - **Intel**：`LuxBase_2.2.0_x64.dmg`
+   - **Apple Silicon（M1/M2/M3/M4）**：`LuxBase_2.3.0_aarch64.dmg`
+   - **Intel**：`LuxBase_2.3.0_x64.dmg`
 2. 包是自签名、未公证的。如果提示"无法验证开发者"：右键 → 打开，或者终端跑
    ```bash
    xattr -dr com.apple.quarantine /Applications/LuxBase.app

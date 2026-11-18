@@ -1,6 +1,6 @@
 [package]
 name = "luxbase"
-version = "2.2.0"
+version = "2.3.0"
 description = "Production-minded multi-protocol database client"
 authors = ["charl"]
 license = "GPL-3.0-or-later"

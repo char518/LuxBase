@@ -8478,7 +8478,7 @@ export function mountUi() {
       <p>先创建一个连接。连接配置与密码都加密保存在本机的 LuxBase 本地保险库里。</p>
       <div class="welcome-protocols">${Object.entries(protocolMeta).map(([key, meta]) => `<button class="welcome-card" data-action="new-connection" data-protocol="${key}">${protocolBadgeHtml(key)}<b>${meta.label}</b><small>${descriptions[key] || ""}</small></button>`).join("")}</div>
       <div class="welcome-tips"><span><kbd>⌘N</kbd> 新建连接</span><span><kbd>⌘T</kbd> 新建查询</span><span><kbd>⌘K</kbd> 搜索连接与表</span><span><kbd>⇧⌘/</kbd> 全部快捷键</span></div>
-      <div class="welcome-credit">charl 开发并构建 · v2.2.0</div>
+      <div class="welcome-credit">charl 开发并构建 · v2.3.0</div>
     </div>`;
   }
 

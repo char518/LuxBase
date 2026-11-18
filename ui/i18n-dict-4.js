@@ -327,7 +327,7 @@ window.__LUX_I18N_DICT__ = Object.assign(window.__LUX_I18N_DICT__ || {}, {
   "先创建一个连接。连接配置与密码都加密保存在本机的 LuxBase 本地保险库里。": "Create a connection first. Connection configuration and passwords are encrypted in the LuxBase local vault on this machine.",
   "搜索连接与表": "Search connections and tables",
   "全部快捷键": "All shortcuts",
-  "charl 开发并构建 · v2.2.0": "Developed & built by charl · v2.2.0",
+  "charl 开发并构建 · v2.3.0": "Developed & built by charl · v2.3.0",
   "选择一个连接": "Select a connection",
   "在左侧单击连接或数据库，这里会列出它的表、视图和已保存的查询。": "Click a connection or database on the left; its tables, views and saved queries are listed here.",
   "Redis 没有表结构": "Redis has no table structure",
