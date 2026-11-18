@@ -52,7 +52,7 @@ LuxBase 2.1.0 安装说明 · Installation Guide（中英双语）
 - 卸载：删除 Applications 中的 LuxBase.app；如需清空数据再删除上述目录。
 
 六、关于
-LuxBase 由 charl 开发并构建，MIT 开源。
+LuxBase 由 charl 开发并构建，GPL-3.0 开源（衍生作品须同样开源）。
 版本 2.1.0 · 多协议数据库客户端（MySQL / PostgreSQL / SQLite / Redis / Elasticsearch）。
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -113,6 +113,6 @@ execute tool (single write statement). Every agent statement is audited in LuxBa
   as well if you also want to remove your local data.
 
 6. About
-LuxBase is developed and built by charl, released under the MIT license.
+LuxBase is developed and built by charl, released under the GPL-3.0 license (derivatives must stay open source).
 Version 2.1.0 · multi-protocol database client (MySQL / PostgreSQL / SQLite /
 Redis / Elasticsearch).

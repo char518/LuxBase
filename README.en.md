@@ -86,4 +86,4 @@ Found a bug or missing something? Open an issue — I read them.
 
 ## License
 
-[MIT](LICENSE) © 2026 charl. Use it however you like; PRs are welcome.
+[GPL-3.0](LICENSE) © 2026 charl. Use it freely, with one rule: derivative works must also be open-sourced under GPL-3.0 — no closed-source forks. The LuxBase name and logo are not covered; use your own branding for derivatives.

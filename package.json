@@ -2,7 +2,7 @@
   "name": "luxbase",
   "version": "2.1.0",
   "private": true,
-  "license": "MIT",
+  "license": "GPL-3.0-or-later",
   "author": "charl",
   "description": "Production-minded multi-protocol database client shell built for Tauri 2.",
   "type": "module",

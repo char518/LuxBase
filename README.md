@@ -86,4 +86,4 @@ LUXBASE_LIVE_REDIS="127.0.0.1|6379|password" cargo test --lib
 
 ## License
 
-[MIT](LICENSE) © 2026 charl。随便用，改得顺手的话也欢迎 PR。
+[GPL-3.0](LICENSE) © 2026 charl。代码随便用，但用了就要开源：基于本项目修改或衍生的作品，也必须以 GPL-3.0 公开源码，不能闭源白嫖。LuxBase 名称和 logo 不在授权范围内，衍生作品请换成自己的品牌。
