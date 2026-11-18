@@ -9,7 +9,7 @@ One window for MySQL · PostgreSQL · SQLite · Redis · Elasticsearch — with 
 
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 [![Release](https://img.shields.io/badge/release-v2.2.0-brightgreen.svg)](https://github.com/char518/LuxBase/releases)
-[![Platform](https://img.shields.io/badge/platform-macOS%20·%20Universal-lightgrey.svg)](#install-macos)
+[![Platform](https://img.shields.io/badge/platform-macOS%2012%2B-lightgrey.svg)](#install-macos)
 [![Tauri 2](https://img.shields.io/badge/Tauri-2-24C8DB.svg?logo=tauri&logoColor=white)](https://tauri.app)
 
 **English** | [简体中文](README.zh-CN.md)
@@ -72,7 +72,9 @@ Read-only by default: table metadata, single-statement SELECTs (100 rows default
 
 ## Install (macOS)
 
-1. Download `LuxBase_2.2.0_universal.dmg` from [Releases](https://github.com/char518/LuxBase/releases) and drag LuxBase.app into Applications. One universal binary covers both Intel and Apple Silicon Macs (macOS 12+).
+1. Download the DMG for your Mac from [Releases](https://github.com/char518/LuxBase/releases), then drag LuxBase.app into Applications:
+   - **Apple Silicon (M1/M2/M3/M4)**: `LuxBase_2.2.0_aarch64.dmg`
+   - **Intel**: `LuxBase_2.2.0_x64.dmg`
 2. The bundle is ad-hoc signed, not notarized. If macOS says the developer can't be verified: right-click → Open, or run
    ```bash
    xattr -dr com.apple.quarantine /Applications/LuxBase.app
@@ -110,7 +112,7 @@ LUXBASE_LIVE_REDIS="127.0.0.1|6379|password" cargo test --lib
 
 - No custom CA / mTLS settings for Redis yet; very large values can be previewed and copied but not fully edited.
 - Big-table optimizations are benchmarked at the 100k-row scale. I haven't had a real 100M-row database to push against — tell me how it goes if you do.
-- macOS only for now — one universal binary for Intel and Apple Silicon. Windows/Linux should be possible with Tauri; I just haven't had the time to verify.
+- macOS only for now, with separate Intel and Apple Silicon builds. Windows/Linux should be possible with Tauri; I just haven't had the time to verify.
 
 ## Contributing
 

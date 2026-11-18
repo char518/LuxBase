@@ -21,7 +21,9 @@ if (!existsSync(tauri)) {
 
 const withDmg = process.argv.includes("--dmg");
 const universal = process.argv.includes("--universal");
-const targetDir = universal ? "universal-apple-darwin/release" : "release";
+const intel = process.argv.includes("--intel");
+const targetTriple = universal ? "universal-apple-darwin" : intel ? "x86_64-apple-darwin" : null;
+const targetDir = targetTriple ? `${targetTriple}/release` : "release";
 const bundle = resolve(root, "src-tauri/target", targetDir, "bundle/macos", appName);
 const cargo = process.env.CARGO || resolve(process.env.HOME || "", ".cargo/bin/cargo");
 let mcpBinary;
@@ -30,7 +32,7 @@ if (universal) {
   // only lipos the main binary itself, so merge luxbase-mcp before bundling.
   const mcpBuild = spawnSync(
     cargo,
-    ["build", "--release", "--bin", "luxbase-mcp", "--target", "aarch64-apple-darwin", "--target", "x86_64-apple-darwin"],
+    ["build", "--release", "--bin", "luxbase-mcp", "--features", "tauri/custom-protocol", "--target", "aarch64-apple-darwin", "--target", "x86_64-apple-darwin"],
     { cwd: resolve(root, "src-tauri"), stdio: "inherit", env: process.env },
   );
   if (mcpBuild.status !== 0) process.exit(mcpBuild.status ?? 1);
@@ -52,9 +54,11 @@ if (universal) {
   // Tauri signs the bundle without --deep, so nested binaries must arrive pre-signed.
   const signMcp = spawnSync("/usr/bin/codesign", ["--force", "--sign", "-", mcpBinary], { stdio: "inherit" });
   if (signMcp.status !== 0) process.exit(signMcp.status ?? 1);
+} else if (intel) {
+  mcpBinary = resolve(root, "src-tauri/target/x86_64-apple-darwin/release/luxbase-mcp");
 }
 const buildArgs = ["build", "--bundles", withDmg ? "app,dmg" : "app"];
-if (universal) buildArgs.push("--target", "universal-apple-darwin");
+if (targetTriple) buildArgs.push("--target", targetTriple);
 const build = spawnSync(tauri, buildArgs, {
   cwd: root,
   stdio: "inherit",
@@ -71,7 +75,7 @@ const verify = spawnSync("/usr/bin/codesign", ["--verify", "--deep", "--strict",
 if (verify.status !== 0) throw new Error("The Tauri bundle failed code-signature verification.");
 
 // Ship the MCP stdio bridge inside the bundle so agents can launch it directly.
-if (!universal) {
+if (!universal && !intel) {
   const mcpBuild = spawnSync(cargo, ["build", "--release", "--bin", "luxbase-mcp"], {
     cwd: resolve(root, "src-tauri"),
     stdio: "inherit",

@@ -9,7 +9,7 @@
 
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 [![Release](https://img.shields.io/badge/release-v2.2.0-brightgreen.svg)](https://github.com/char518/LuxBase/releases)
-[![Platform](https://img.shields.io/badge/platform-macOS%20·%20Universal-lightgrey.svg)](#安装macos)
+[![Platform](https://img.shields.io/badge/platform-macOS%2012%2B-lightgrey.svg)](#安装macos)
 [![Tauri 2](https://img.shields.io/badge/Tauri-2-24C8DB.svg?logo=tauri&logoColor=white)](https://tauri.app)
 
 [English](README.md) | **简体中文**
@@ -72,7 +72,9 @@ LuxBase 是我自己写、自己天天在用的数据库客户端。起因很简
 
 ## 安装（macOS）
 
-1. 到 [Releases](https://github.com/char518/LuxBase/releases) 下载 `LuxBase_2.2.0_universal.dmg`，把 LuxBase.app 拖进 Applications。一个 universal 包同时支持 Intel 和 Apple Silicon（macOS 12+）。
+1. 到 [Releases](https://github.com/char518/LuxBase/releases) 按机型下载，然后把 LuxBase.app 拖进 Applications：
+   - **Apple Silicon（M1/M2/M3/M4）**：`LuxBase_2.2.0_aarch64.dmg`
+   - **Intel**：`LuxBase_2.2.0_x64.dmg`
 2. 包是自签名、未公证的。如果提示"无法验证开发者"：右键 → 打开，或者终端跑
    ```bash
    xattr -dr com.apple.quarantine /Applications/LuxBase.app
@@ -110,7 +112,7 @@ LUXBASE_LIVE_REDIS="127.0.0.1|6379|password" cargo test --lib
 
 - Redis 的自定义 CA / mTLS 还没做配置入口；超大值能预览和复制，但没开放全量编辑。
 - 大表优化实测到 10 万行级别，亿级真实库还没机会压过——有条件的朋友试试告诉我结果。
-- 目前只发了 macOS 的包（Intel 与 Apple Silicon 通用的 universal 二进制）。Windows / Linux 理论上 Tauri 都能出，只是我还没精力验证。
+- 目前只发了 macOS 的包（Intel 与 Apple Silicon 分开两个安装包）。Windows / Linux 理论上 Tauri 都能出，只是我还没精力验证。
 
 ## 参与贡献
 

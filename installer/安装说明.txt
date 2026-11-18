@@ -1,7 +1,7 @@
 LuxBase 2.2.0 安装说明 · Installation Guide（中英双语）
 ======================================================
 开发并构建 / Developed and built by：charl
-适用平台 / Platform：macOS 12.0+（Intel 与 Apple Silicon 通用 / universal binary）
+适用平台 / Platform：macOS 12.0+（Intel 与 Apple Silicon 分别提供安装包 / separate Intel & Apple Silicon downloads）
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 中文说明
