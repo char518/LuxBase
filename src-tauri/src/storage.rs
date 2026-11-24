@@ -389,6 +389,9 @@ impl LocalStore {
         if config.protocol == Protocol::Elasticsearch && config.host.trim().is_empty() {
             return Err(AppError::validation("Host is required for Elasticsearch."));
         }
+        if matches!(config.protocol, Protocol::Milvus | Protocol::Qdrant) && config.host.trim().is_empty() {
+            return Err(AppError::validation("Host is required for the vector store."));
+        }
         if config.pool.max_size == 0 {
             return Err(AppError::validation("Pool max_size must be at least 1."));
         }
@@ -547,6 +550,8 @@ impl LocalStore {
                             "postgres" => Protocol::Postgres,
                             "sqlite" => Protocol::Sqlite,
                             "elasticsearch" => Protocol::Elasticsearch,
+                            "milvus" => Protocol::Milvus,
+                            "qdrant" => Protocol::Qdrant,
                             _ => Protocol::Redis,
                         },
                         host_summary: row.get(3)?,

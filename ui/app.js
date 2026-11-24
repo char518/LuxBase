@@ -38,6 +38,39 @@ export function mountUi() {
   let lastEsConn = null;
   let esDocView = null;
   let esDocModalDoc = null;
+  let vectorTabOpen = false;
+  const vectorSessions = new Map();
+  let lastVectorConn = null;
+  let vectorEntityModalMode = null;
+  let vectorState = {
+    connectionId: null,
+    protocol: null,
+    collection: null,
+    collections: [],
+    tab: "search",
+    detail: null,
+    vectorField: "",
+    vectorText: "",
+    topK: 10,
+    searchFilter: "",
+    searchOutputFields: "",
+    hits: [],
+    searchMs: null,
+    queryFilter: "",
+    queryLimit: 50,
+    queryOffset: 0,
+    queryPageToken: null,
+    queryWithVector: false,
+    rows: [],
+    nextOffset: null,
+    queryMs: null,
+    restMethod: "POST",
+    restPath: "",
+    restBody: "",
+    restResult: null,
+    loading: false,
+    hitCols: { id: 160, score: 80, fields: null },
+  };
   let contextRedisKey = null;
   let confirmAction = null;
   let securityState = null;
@@ -205,7 +238,10 @@ export function mountUi() {
 
   function protocolFamily(protocol) {
     return protocolDescriptors.get(protocol)?.family
-      || (protocol === "redis" ? "kv" : protocol === "elasticsearch" ? "search" : "sql");
+      || (protocol === "redis" ? "kv"
+        : protocol === "elasticsearch" ? "search"
+        : (protocol === "milvus" || protocol === "qdrant") ? "vector"
+        : "sql");
   }
 
   function activeSupports(capability) {
@@ -293,7 +329,9 @@ export function mountUi() {
     postgres: { label: "PostgreSQL", badge: "postgres", short: "P", defaults: { host: "", port: "5432" } },
     sqlite: { label: "SQLite", badge: "sqlite", short: "S", defaults: { host: "", port: "" } },
     redis: { label: "Redis", badge: "redis", short: "R", defaults: { host: "", port: "6379" } },
-    elasticsearch: { label: "Elasticsearch", badge: "es", short: "ES", defaults: { host: "", port: "9200" } }
+    elasticsearch: { label: "Elasticsearch", badge: "es", short: "ES", defaults: { host: "", port: "9200" } },
+    milvus: { label: "Milvus", badge: "milvus", short: "MV", defaults: { host: "", port: "19530" } },
+    qdrant: { label: "Qdrant", badge: "qdrant", short: "QD", defaults: { host: "", port: "6333" } }
   };
 
 
@@ -378,7 +416,7 @@ export function mountUi() {
   }
 
   function showWorkspace(name) {
-    const isKnown = ["objects", "sql", "redis", "es", ...TOOL_VIEWS].includes(name);
+    const isKnown = ["objects", "sql", "redis", "es", "vector", ...TOOL_VIEWS].includes(name);
     if (!isKnown) return;
     const toolTab = $(`.tool-tab[data-workspace="${name}"]`);
     if (toolTab && TOOL_VIEWS.includes(name)) toolTab.hidden = false;
@@ -406,6 +444,7 @@ export function mountUi() {
     if (name === "sync") renderSyncView();
     if (name === "compare") renderCompareView();
     if (name === "es") renderEsView();
+    if (name === "vector") renderVectorView();
     if (name === "console") {
       renderConsoleView();
       requestAnimationFrame(() => $("#console-input")?.focus({ preventScroll: true }));
@@ -434,6 +473,7 @@ export function mountUi() {
     if (tab) tab.hidden = true;
     if (name === "redis") redisTabOpen = false;
     if (name === "es") esTabOpen = false;
+    if (name === "vector") vectorTabOpen = false;
     if (currentWorkspace() === name) {
       if (lastExplorerWorkspace === "sql" && activeSqlTab()) activateSqlTab(activeSqlTabId);
       else showWorkspace("objects");
@@ -450,7 +490,7 @@ export function mountUi() {
     }
     const view = currentWorkspace();
     if (view === "sql" && activeSqlTabId) closeSqlTab(activeSqlTabId);
-    else if (TOOL_VIEWS.includes(view) || view === "redis" || view === "es") closeToolView(view);
+    else if (TOOL_VIEWS.includes(view) || view === "redis" || view === "es" || view === "vector") closeToolView(view);
   }
 
   function focusSearch() {
@@ -1344,6 +1384,8 @@ export function mountUi() {
         <label data-network-field>端口<input id="conn-port" type="number" value="${connection?.port || protocolMeta.mysql.defaults.port}" /></label>
         <label data-sql-only>数据库<input id="conn-database" value="${escapeHtml(connection?.database || "")}" /></label>
         <label class="full" data-es-field hidden>认证方式<select id="es-auth-mode">${["none:无认证", "basic:用户名 / 密码", "apiKey:API Key"].map((item) => { const [value, label] = item.split(":"); return `<option value="${value}" ${(connection?.esAuthMode || "basic") === value ? "selected" : ""}>${label}</option>`; }).join("")}</select></label>
+        <label class="full" data-vector-field hidden>认证方式<select id="vector-auth-mode">${["none:无认证", "password:用户名 / 密码", "apiKey:Token / API Key"].map((item) => { const [value, label] = item.split(":"); return `<option value="${value}" ${(connection?.vectorAuthMode || "none") === value ? "selected" : ""}>${label}</option>`; }).join("")}</select></label>
+        <label data-milvus-field hidden>数据库 (dbName)<input id="vector-database" value="${escapeHtml(connection?.database || "")}" placeholder="default" /></label>
         <label data-auth-field id="conn-username-label">用户名<input id="conn-username" value="${escapeHtml(connection?.username || "")}" autocomplete="username" /></label>
         <label data-auth-field id="conn-password-label">密码<input id="conn-password" type="password" placeholder="${editing ? "留空则保留已保存密码" : "写入本地保险库"}" autocomplete="current-password" /></label>
         <label class="full" data-sql-only>SSH 隧道<select id="ssh-enabled"><option value="false" ${connection?.ssh ? "" : "selected"}>不使用</option><option value="true" ${connection?.ssh ? "selected" : ""}>使用 SSH</option></select></label>
@@ -1431,6 +1473,28 @@ export function mountUi() {
     if (redisTlsNote) redisTlsNote.hidden = family !== "kv";
     $$("[data-es-field]").forEach((field) => { field.hidden = protocol !== "elasticsearch"; });
     if (protocol === "elasticsearch") updateEsAuthFields();
+    $$("[data-vector-field]").forEach((field) => { field.hidden = family !== "vector"; });
+    $$("[data-milvus-field]").forEach((field) => { field.hidden = protocol !== "milvus"; });
+    if (family === "vector") updateVectorAuthFields(protocol);
+  }
+
+  function updateVectorAuthFields(protocol) {
+    const select = $("#vector-auth-mode");
+    if (!select) return;
+    const passwordOption = select.querySelector('option[value="password"]');
+    if (passwordOption) passwordOption.hidden = protocol !== "milvus";
+    let mode = select.value || "none";
+    if (protocol === "qdrant" && mode === "password") { mode = "apiKey"; select.value = mode; }
+    const usernameLabel = $("#conn-username-label");
+    const passwordLabel = $("#conn-password-label");
+    const password = $("#conn-password");
+    const showUser = protocol === "milvus" && mode === "password";
+    if (usernameLabel) usernameLabel.hidden = !showUser;
+    if (passwordLabel) {
+      passwordLabel.hidden = mode === "none";
+      if (passwordLabel.firstChild) passwordLabel.firstChild.textContent = mode === "apiKey" ? (protocol === "qdrant" ? "API Key" : "Token / API Key") : "密码";
+    }
+    if (password) password.placeholder = mode === "apiKey" ? (protocol === "qdrant" ? "Qdrant api-key" : "user:password 或 Zilliz Token") : "写入本地保险库";
   }
 
   function updateEsAuthFields() {
@@ -1467,6 +1531,7 @@ export function mountUi() {
 
   function connectionPayload() {
     const protocol = $("#conn-protocol")?.value || "mysql";
+    const family = protocolFamily(protocol);
     const mode = $("#redis-mode")?.value || "standalone";
     const sshEnabled = $("#ssh-enabled")?.value === "true";
     const tlsMode = protocol === "sqlite" ? "disabled" : ($("#tls-mode")?.value || "disabled");
@@ -1480,7 +1545,7 @@ export function mountUi() {
       host: $("#conn-host")?.value?.trim() || "",
       port: numberValue("#conn-port", 0),
       username: $("#conn-username")?.value?.trim() || "",
-      database: $("#conn-database")?.value?.trim() || "",
+      database: protocol === "milvus" ? ($("#vector-database")?.value?.trim() || "") : ($("#conn-database")?.value?.trim() || ""),
       filePath: protocol === "sqlite" ? ($("#conn-host")?.value?.trim() || null) : null,
       tlsMode,
       caCertPath: $("#tls-ca")?.value?.trim() || null,
@@ -1499,6 +1564,7 @@ export function mountUi() {
       clusterNodes,
       redisDb: numberValue("#redis-db", 0),
       esAuthMode: protocol === "elasticsearch" ? ($("#es-auth-mode")?.value || "basic") : null,
+      vectorAuthMode: family === "vector" ? ($("#vector-auth-mode")?.value || "none") : null,
       pool: {
         minIdle: numberValue("#pool-min-idle", 2),
         maxSize: numberValue("#pool-max-size", 20),
@@ -1577,6 +1643,14 @@ export function mountUi() {
         return "Elasticsearch 当前不支持客户端证书 TLS；请使用服务端 TLS（可配自定义 CA）或关闭 TLS。";
       }
       if (config.esAuthMode === "basic" && !config.username) return "Basic 认证需要填写用户名。";
+    }
+    if (config.protocol === "milvus" || config.protocol === "qdrant") {
+      if (config.tlsMode !== "disabled" && config.clientCertPath) {
+        return "向量数据库当前不支持客户端证书 TLS；请使用服务端 TLS（可配自定义 CA）或关闭 TLS。";
+      }
+      if (config.protocol === "milvus" && config.vectorAuthMode === "password" && !config.username) {
+        return "Milvus 用户名 / 密码认证需要填写用户名。";
+      }
     }
     if (config.pool.maxSize < 1) return "连接池 max_size 至少为 1。";
     if (config.pool.minIdle > config.pool.maxSize) return "连接池 min_idle 不能大于 max_size。";
@@ -3764,6 +3838,9 @@ export function mountUi() {
     if (esState.connectionId && esState.index && connection?.id !== esState.connectionId) {
       esSessions.set(esState.connectionId, captureEsSession());
     }
+    if (vectorState.connectionId && vectorState.collection && connection?.id !== vectorState.connectionId) {
+      vectorSessions.set(vectorState.connectionId, captureVectorSession());
+    }
     activeConnectionId = connection?.id || null;
     activeConnection = connection || null;
     activeProtocol = connection?.protocol || "mysql";
@@ -3773,6 +3850,14 @@ export function mountUi() {
     if (redisTab) redisTab.hidden = !redisTabOpen && activeFamily !== "kv";
     const esTab = $('.tool-tab[data-workspace="es"]');
     if (esTab) esTab.hidden = !esTabOpen && activeFamily !== "search";
+    const vectorTab = $('.tool-tab[data-workspace="vector"]');
+    if (vectorTab) vectorTab.hidden = !vectorTabOpen && activeFamily !== "vector";
+    if (activeFamily === "vector") {
+      const mini = $("#vector-tab-mini");
+      if (mini) { mini.className = `protocol-mini ${activeProtocol}`; mini.innerHTML = `<svg aria-hidden="true"><use href="#proto-${activeProtocol}"/></svg>`; }
+      const title = $("#vector-tab-title");
+      if (title) title.textContent = protocolMeta[activeProtocol]?.label || "向量数据库";
+    }
     resetInspectorHealth(connection);
     const statusConnection = $(".status-connection");
     if (statusConnection) statusConnection.innerHTML = `<span class="health-dot ${connection ? "" : "muted"}"></span>${escapeHtml(connection?.name || "未选择连接")}`;
@@ -3829,7 +3914,7 @@ export function mountUi() {
       setObjectsScope(connection.id, sameScope ? objectsState.schema : defaultSchemaFor(connection.id));
     } else {
       setObjectsScope(connection.id, null, { show: false });
-      showWorkspace("redis");
+      showWorkspace(activeFamily === "vector" ? "objects" : "redis");
     }
     const group = $(`.connection-group[data-connection-id="${CSS.escape(connectionId)}"]`);
     if (!group) return;
@@ -3848,6 +3933,17 @@ export function mountUi() {
       }
       if (activeFamily === "sql") {
         await refreshPoolMetrics();
+      } else if (activeFamily === "vector") {
+        try {
+          const info = await backendCall("vector_info", { connectionId, operationId: operationId() });
+          const inspectorStatus = $("#inspector-connection-status");
+          if (inspectorStatus) {
+            inspectorStatus.innerHTML = `<span class="health-dot online"></span>${escapeHtml(info.product || "向量库")}可达 · ${info.collectionCount ?? "—"} 个集合`;
+          }
+        } catch (error) {
+          const inspectorStatus = $("#inspector-connection-status");
+          if (inspectorStatus) inspectorStatus.innerHTML = `<span class="health-dot muted"></span>${escapeHtml(errorMessage(error))}`;
+        }
       } else {
         try {
           const info = await getRedisInfo(connectionId);
@@ -3870,6 +3966,31 @@ export function mountUi() {
     const children = $(".tree-children", group);
     if (!connection || !children) return;
     children.innerHTML = '<div class="tree-loading">正在读取元数据…</div>';
+    if (protocolFamily(connection.protocol) === "vector") {
+      try {
+        const collections = await backendCall("vector_collections", { connectionId, operationId: operationId() });
+        vectorState.collections = collections || [];
+        vectorState.connectionId = connectionId;
+        vectorState.protocol = connection.protocol;
+        children.innerHTML = (collections || []).map((collection) => `
+          <button class="tree-row" data-vector-collection="${escapeHtml(collection.name)}" title="${escapeHtml(collection.name)} · 单击打开集合浏览">
+            <span class="tree-spacer"></span>
+            <svg class="tree-icon table"><use href="#i-grid"/></svg>
+            <span class="tree-label">${escapeHtml(collection.name)}</span>
+            <span class="tree-meta">${collection.rowCount != null ? formatCount(collection.rowCount) : ""}</span>
+          </button>
+        `).join("") || '<div class="tree-empty">实例中没有集合</div>';
+        group.dataset.loaded = "true";
+        $(".connection-row .health-dot", group)?.classList.replace("muted", "online");
+        const inspectorStatus = $("#inspector-connection-status");
+        if (inspectorStatus) inspectorStatus.innerHTML = `<span class="health-dot online"></span>实例可达 · ${(collections || []).length} 个集合`;
+        if (objectsState.connectionId === connectionId && currentWorkspace() === "objects") renderObjectsView();
+      } catch (error) {
+        children.innerHTML = `<div class="tree-error">${escapeHtml(errorMessage(error))}</div>`;
+        showOperationError(error, "向量数据库连接失败");
+      }
+      return;
+    }
     if (protocolFamily(connection.protocol) === "search") {
       try {
         const indices = await backendCall("es_indices", { connectionId, operationId: operationId() });
@@ -5104,6 +5225,593 @@ export function mountUi() {
     pre.innerHTML = highlightJson(result.body);
   }
 
+  /* ---------- Vector stores (Milvus / Qdrant) ---------- */
+
+  function vectorConnection() {
+    const connection = connectionLookup.get(vectorState.connectionId || activeConnectionId);
+    return connection && protocolFamily(connection.protocol) === "vector" ? connection : null;
+  }
+
+  function requireVectorConnection() {
+    const connection = vectorConnection();
+    if (!connection) throw new Error("请先选择并打开一个 Milvus 或 Qdrant 连接。");
+    vectorState.protocol = connection.protocol;
+    return connection;
+  }
+
+  function vectorHealthClass(status) {
+    const s = String(status || "").toLowerCase();
+    return s === "green" || s === "loaded" ? "green" : s === "yellow" || s === "loading" ? "yellow" : s === "red" ? "red" : "unknown";
+  }
+
+  function vectorIsQdrant() { return vectorState.protocol === "qdrant"; }
+
+  async function refreshVectorCollections() {
+    const connection = requireVectorConnection();
+    const collections = await backendCall("vector_collections", { connectionId: connection.id, operationId: operationId() });
+    vectorState.collections = collections || [];
+    vectorState.connectionId = connection.id;
+    vectorState.collectionsConnectionId = connection.id;
+    return vectorState.collections;
+  }
+
+  async function renderVectorObjectsView(connection) {
+    const list = $("#objects-list");
+    if (!list) return;
+    vectorState.connectionId = connection.id;
+    vectorState.protocol = connection.protocol;
+    if (!vectorState.collections.length || vectorState.collectionsConnectionId !== connection.id) {
+      list.innerHTML = '<div class="objects-empty"><div class="objects-hint"><strong>正在读取集合…</strong></div></div>';
+      try { await refreshVectorCollections(); }
+      catch (error) {
+        objectsEmpty(`<div class="objects-hint"><strong>无法读取集合</strong><span>${escapeHtml(errorMessage(error))}</span><div class="objects-hint-actions"><button class="primary-button" data-action="vector-objects-refresh">重试</button></div></div>`);
+        return;
+      }
+    }
+    const collections = vectorState.collections;
+    const rows = collections.map((collection) => `
+      <tr class="object-row" data-vector-collection="${escapeHtml(collection.name)}" data-connection-id="${escapeHtml(connection.id)}">
+        <td><span class="object-name"><svg class="tree-icon table"><use href="#i-grid"/></svg>${escapeHtml(collection.name)}</span></td>
+        <td><span class="es-health ${vectorHealthClass(collection.status)}">${escapeHtml(collection.status || "—")}</span></td>
+        <td class="numeric">${collection.rowCount != null ? formatCount(collection.rowCount) : "—"}</td>
+        <td>${collection.vectorFields?.length ? escapeHtml(collection.vectorFields.join(", ")) : "—"}</td>
+        <td>${escapeHtml(collection.description || "—")}</td>
+      </tr>`).join("");
+    list.innerHTML = `
+      <div class="es-objects-toolbar">
+        <button class="ot-button" data-action="vector-open-collection" data-needs-selection disabled><svg><use href="#i-grid"/></svg>打开集合</button>
+        <button class="ot-button" data-action="vector-create-collection"><svg><use href="#i-plus"/></svg>新建集合</button>
+        <button class="ot-button" data-action="vector-drop-collection" data-needs-selection disabled><svg><use href="#i-warning"/></svg>删除集合</button>
+        <button class="ot-button" data-action="vector-objects-refresh"><svg><use href="#i-refresh"/></svg>刷新</button>
+        <span class="toolbar-spacer"></span>
+        <span class="es-objects-count">${collections.length} 个集合</span>
+      </div>
+      <div class="object-table-wrap">
+        <table class="object-table vector-object-table" data-resize-key="vector-collections">
+          <colgroup><col style="width:240px"><col style="width:90px"><col style="width:110px"><col style="width:200px"><col></colgroup>
+          <thead><tr><th>名称<span class="col-resizer" data-gcol="0"></span></th><th>状态<span class="col-resizer" data-gcol="1"></span></th><th class="numeric">行数<span class="col-resizer" data-gcol="2"></span></th><th>向量字段<span class="col-resizer" data-gcol="3"></span></th><th>描述<span class="col-resizer" data-gcol="4"></span></th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="5" class="empty-table">实例中没有集合。点击“新建集合”创建第一个集合。</td></tr>'}</tbody>
+        </table>
+      </div>`;
+    setStatusCenter(`${connection.name} · ${collections.length} 个集合`);
+    $$(".vector-object-table .object-row", list).forEach((row) => {
+      row.addEventListener("click", () => {
+        $$(".vector-object-table .object-row", list).forEach((item) => item.classList.toggle("selected", item === row));
+        $$(".es-objects-toolbar [data-needs-selection]", list).forEach((button) => { button.disabled = false; });
+      });
+      row.addEventListener("dblclick", () => openVectorCollection(row.dataset.vectorCollection));
+    });
+    applyGenericColWidths();
+  }
+
+  function selectedVectorCollection() {
+    return $(".vector-object-table .object-row.selected")?.dataset.vectorCollection || vectorState.collection || null;
+  }
+
+  function captureVectorSession() {
+    return {
+      collection: vectorState.collection, tab: vectorState.tab, detail: vectorState.detail,
+      vectorField: vectorState.vectorField, vectorText: vectorState.vectorText, topK: vectorState.topK,
+      searchFilter: vectorState.searchFilter, searchOutputFields: vectorState.searchOutputFields,
+      hits: vectorState.hits, searchMs: vectorState.searchMs,
+      queryFilter: vectorState.queryFilter, queryLimit: vectorState.queryLimit, queryOffset: vectorState.queryOffset,
+      queryPageToken: vectorState.queryPageToken, queryWithVector: vectorState.queryWithVector,
+      rows: vectorState.rows, nextOffset: vectorState.nextOffset, queryMs: vectorState.queryMs,
+      restMethod: vectorState.restMethod, restPath: vectorState.restPath, restBody: vectorState.restBody, restResult: vectorState.restResult,
+    };
+  }
+
+  async function openVectorCollection(name) {
+    const connection = requireVectorConnection();
+    const prevConn = vectorState.connectionId;
+    if (prevConn && prevConn !== connection.id && vectorState.collection) vectorSessions.set(prevConn, captureVectorSession());
+    const saved = vectorSessions.get(connection.id);
+    vectorState.connectionId = connection.id;
+    vectorState.protocol = connection.protocol;
+    if (saved && saved.collection === name) {
+      Object.assign(vectorState, saved, { connectionId: connection.id, protocol: connection.protocol });
+    } else {
+      vectorState.collection = name;
+      vectorState.tab = "search";
+      vectorState.detail = null;
+      vectorState.hits = [];
+      vectorState.searchMs = null;
+      vectorState.rows = [];
+      vectorState.nextOffset = null;
+      vectorState.queryOffset = 0;
+      vectorState.queryPageToken = null;
+      vectorState.vectorText = "";
+      vectorState.searchFilter = "";
+      vectorState.queryFilter = "";
+      vectorState.restPath = vectorIsQdrant() ? "/collections" : "/v2/vectordb/collections/list";
+      vectorState.restMethod = vectorIsQdrant() ? "GET" : "POST";
+      vectorState.restBody = vectorIsQdrant() ? "" : "{}";
+      vectorState.restResult = null;
+    }
+    lastVectorConn = connection.id;
+    vectorTabOpen = true;
+    const tabEl = $('.tool-tab[data-workspace="vector"]');
+    if (tabEl) tabEl.hidden = false;
+    showWorkspace("vector");
+    if (!vectorState.detail) await vectorLoadSchema();
+  }
+
+  function renderVectorView() {
+    const view = $("#view-vector");
+    if (!view) return;
+    const connection = vectorConnection();
+    if (!connection) {
+      view.innerHTML = '<div class="objects-empty"><div class="objects-hint"><strong>向量数据库浏览器</strong><span>在左侧选择一个 Milvus 或 Qdrant 连接并展开集合，或从对象列表打开集合。</span></div></div>';
+      return;
+    }
+    vectorState.protocol = connection.protocol;
+    const collection = vectorState.collection;
+    const tab = vectorState.tab;
+    const tabs = [["search", "向量检索"], ["query", "标量查询"], ["schema", "Schema / 索引"], ["rest", "REST 控制台"]]
+      .map(([key, label]) => `<button class="es-tab${tab === key ? " active" : ""}" data-vector-tab="${key}">${label}</button>`).join("");
+    const badge = protocolBadgeHtml(connection.protocol);
+    view.innerHTML = `
+      <div class="es-head">
+        <div class="es-title">${badge}<div><div class="key-breadcrumb">${escapeHtml(connection.name)} <span>/</span> 集合</div><h2 title="${escapeHtml(collection || "")}">${collection ? escapeHtml(collection) : "未选择集合"}</h2></div></div>
+        <div class="es-head-actions">
+          <button class="ghost-button" data-action="vector-new-entity" ${collection ? "" : "disabled"}><svg><use href="#i-plus"/></svg>新建实体</button>
+          <button class="ghost-button" data-action="vector-delete-entities" ${collection ? "" : "disabled"}><svg><use href="#i-warning"/></svg>删除实体</button>
+          <button class="ghost-button" data-action="vector-refresh"><svg><use href="#i-refresh"/></svg>刷新</button>
+          <button class="ghost-button danger-text" data-action="vector-drop-collection" ${collection ? "" : "disabled"}>删除集合</button>
+        </div>
+      </div>
+      <div class="es-tabs">${tabs}</div>
+      <div class="es-body">${collection ? vectorPanelHtml(tab) : '<div class="empty-table">从左侧树或对象列表选择一个集合开始浏览。</div>'}</div>`;
+    if (collection) {
+      if (tab === "search") renderVectorSearchResults();
+      if (tab === "query") renderVectorQueryResults();
+      if (tab === "schema") renderVectorSchema();
+      if (tab === "rest") renderVectorRestResponse();
+    }
+  }
+
+  function vectorPanelHtml(tab) {
+    const qdrant = vectorIsQdrant();
+    if (tab === "search") {
+      return `
+        <div class="vector-bar">
+          <textarea id="vector-input" class="es-dsl" spellcheck="false" placeholder='查询向量，例如 [0.12, 0.98, ...]'>${escapeHtml(vectorState.vectorText)}</textarea>
+          <div class="es-query-controls">
+            <label>向量字段<input id="vector-field" value="${escapeHtml(vectorState.vectorField)}" placeholder="${qdrant ? "命名向量，留空为默认" : "annsField，留空自动"}" spellcheck="false" /></label>
+            <label>Top K<select id="vector-topk">${[5, 10, 20, 50, 100].map((n) => `<option value="${n}"${n === vectorState.topK ? " selected" : ""}>${n}</option>`).join("")}</select></label>
+            <button class="primary-button small" data-action="vector-search"><svg><use href="#i-search"/></svg>检索</button>
+          </div>
+          <div class="es-query-controls">
+            <label class="grow">过滤${qdrant ? "（JSON）" : "（表达式）"}<input id="vector-search-filter" value="${escapeHtml(vectorState.searchFilter)}" placeholder='${qdrant ? '{"must":[{"key":"city","match":{"value":"Berlin"}}]}' : 'id > 0 && city == "Berlin"'}' spellcheck="false" /></label>
+            ${qdrant ? "" : `<label>输出字段<input id="vector-output" value="${escapeHtml(vectorState.searchOutputFields)}" placeholder="留空为全部（*）" spellcheck="false" /></label>`}
+          </div>
+        </div>
+        <div id="vector-search-results" class="es-docs-results"></div>`;
+    }
+    if (tab === "query") {
+      return `
+        <div class="vector-bar">
+          <div class="es-query-controls">
+            <label class="grow">过滤${qdrant ? "（JSON，留空浏览全部）" : "（表达式，留空浏览全部）"}<input id="vector-query-filter" value="${escapeHtml(vectorState.queryFilter)}" placeholder='${qdrant ? '{"must":[...]}' : 'id > 0'}' spellcheck="false" /></label>
+            <label>每页<select id="vector-query-limit">${[20, 50, 100, 200].map((n) => `<option value="${n}"${n === vectorState.queryLimit ? " selected" : ""}>${n}</option>`).join("")}</select></label>
+            ${qdrant ? `<label class="check-line"><input id="vector-with-vector" type="checkbox" ${vectorState.queryWithVector ? "checked" : ""} />含向量</label>` : ""}
+            <button class="primary-button small" data-action="vector-query"><svg><use href="#i-search"/></svg>查询</button>
+          </div>
+        </div>
+        <div id="vector-query-results" class="es-docs-results"></div>`;
+    }
+    if (tab === "schema") {
+      return `<div class="es-panel-head"><strong>Schema / 索引</strong><button class="ghost-button" data-action="vector-refresh-schema"><svg><use href="#i-refresh"/></svg>刷新</button></div><div id="vector-schema-body" class="vector-schema-body"></div>`;
+    }
+    return `
+      <div class="es-rest-bar">
+        <select id="vector-rest-method">${["GET", "POST", "PUT", "DELETE", "HEAD"].map((m) => `<option value="${m}"${m === vectorState.restMethod ? " selected" : ""}>${m}</option>`).join("")}</select>
+        <input id="vector-rest-path" spellcheck="false" value="${escapeHtml(vectorState.restPath)}" placeholder="${qdrant ? "/collections" : "/v2/vectordb/collections/list"}" />
+        <button class="primary-button small" data-action="vector-send-rest"><svg><use href="#i-play"/></svg>发送</button>
+      </div>
+      <div class="es-resize-wrap" id="vector-rest-body-wrap">
+        <textarea id="vector-rest-body" class="es-dsl es-rest-body" spellcheck="false" placeholder="请求体 JSON（GET 可留空）">${escapeHtml(vectorState.restBody)}</textarea>
+        <div class="v-resizer" data-vresize="vector-rest-body-wrap" title="拖动调整请求体高度"></div>
+      </div>
+      <div class="es-panel-head"><strong>响应</strong><span id="vector-rest-status" class="j-status"></span><button class="ghost-button" data-action="vector-copy-rest"><svg><use href="#i-copy"/></svg>复制响应</button></div>
+      <div class="es-resize-wrap es-response-wrap" id="vector-rest-response-wrap">
+        <pre id="vector-rest-response" class="es-json es-rest-response"></pre>
+        <div class="v-resizer" data-vresize="vector-rest-response-wrap" title="拖动调整响应高度"></div>
+      </div>`;
+  }
+
+  function setVectorTab(name) {
+    vectorState.tab = name;
+    renderVectorView();
+    if (!vectorState.collection) return;
+    if (name === "schema" && !vectorState.detail) vectorLoadSchema();
+  }
+
+  function vectorRowId(row) {
+    if (!row || typeof row !== "object") return undefined;
+    if (vectorIsQdrant()) return row.id;
+    if (row.id !== undefined) return row.id;
+    const pk = vectorState.detail?.fields?.find((f) => f.isPrimary)?.name;
+    return pk ? row[pk] : undefined;
+  }
+
+  function renderVectorSearchResults() {
+    const box = $("#vector-search-results");
+    if (!box) return;
+    const hits = vectorState.hits || [];
+    const rows = hits.map((hit, index) => `
+      <tr class="es-doc-row" data-vector-row="${index}" title="点击查看 / 编辑实体">
+        <td class="row-number">${index + 1}</td>
+        <td class="es-doc-id">${escapeHtml(hit.id == null ? "—" : String(hit.id))}</td>
+        <td class="numeric">${hit.score != null ? hit.score.toFixed(4) : "—"}</td>
+        <td class="es-doc-source">${highlightJson(hit.fields, 0)}</td>
+      </tr>`).join("");
+    box.innerHTML = `
+      <div class="es-results-meta">${vectorState.searchMs != null ? `命中 <b>${hits.length}</b> 条 · ${vectorState.searchMs} ms · ${vectorIsQdrant() ? "分数越高越相似" : "distance 越小越相似"}` : "输入查询向量后点击“检索”，这里显示最相似的实体。"}</div>
+      <div class="object-table-wrap es-doc-wrap">
+        <table class="object-table" data-resize-key="vector-hits">
+          <colgroup><col style="width:48px"><col style="width:160px"><col style="width:90px"><col></colgroup>
+          <thead><tr><th class="row-number">#</th><th>ID<span class="col-resizer" data-gcol="1"></span></th><th class="numeric">${vectorIsQdrant() ? "score" : "distance"}<span class="col-resizer" data-gcol="2"></span></th><th>实体<span class="col-resizer" data-gcol="3"></span></th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="4" class="empty-table">没有命中。请提供查询向量并点击“检索”。</td></tr>'}</tbody>
+        </table>
+      </div>`;
+    $$(".es-doc-row", box).forEach((row) => row.addEventListener("click", () => vectorEntityModal("edit", hits[Number(row.dataset.vectorRow)]?.fields)));
+    applyGenericColWidths();
+  }
+
+  async function vectorSearch() {
+    const connection = requireVectorConnection();
+    if (!vectorState.collection) return;
+    vectorState.vectorText = $("#vector-input")?.value ?? vectorState.vectorText;
+    vectorState.vectorField = $("#vector-field")?.value?.trim() || "";
+    vectorState.topK = Number($("#vector-topk")?.value || vectorState.topK);
+    vectorState.searchFilter = $("#vector-search-filter")?.value?.trim() || "";
+    vectorState.searchOutputFields = $("#vector-output")?.value?.trim() || "";
+    let vector;
+    try { vector = JSON.parse(vectorState.vectorText || "[]"); }
+    catch { toast("查询向量无效", "请输入合法的 JSON 数组，例如 [0.1, 0.2]。", "danger"); return; }
+    if (!Array.isArray(vector) || !vector.length || vector.some((n) => typeof n !== "number")) {
+      toast("查询向量无效", "查询向量必须是非空数字数组。", "danger"); return;
+    }
+    let filter = null;
+    if (vectorState.searchFilter) {
+      if (vectorIsQdrant()) { try { filter = JSON.parse(vectorState.searchFilter); } catch { toast("过滤无效", "Qdrant 过滤必须是合法 JSON 对象。", "danger"); return; } }
+      else filter = vectorState.searchFilter;
+    }
+    const outputFields = vectorState.searchOutputFields ? vectorState.searchOutputFields.split(",").map((s) => s.trim()).filter(Boolean) : [];
+    const box = $("#vector-search-results");
+    if (box) box.innerHTML = '<div class="tree-loading">正在检索…</div>';
+    try {
+      const result = await backendCall("vector_search", {
+        connectionId: connection.id,
+        request: { connectionId: connection.id, collection: vectorState.collection, vectorField: vectorState.vectorField || null, vector, topK: vectorState.topK, filter, outputFields, params: null, operationId: operationId() },
+      });
+      vectorState.hits = result.hits || [];
+      vectorState.searchMs = result.durationMs;
+      renderVectorSearchResults();
+      refreshAuditOnly();
+    } catch (error) {
+      showOperationError(error, "向量检索失败");
+      renderVectorSearchResults();
+    }
+  }
+
+  function renderVectorQueryResults() {
+    const box = $("#vector-query-results");
+    if (!box) return;
+    const rows = vectorState.rows || [];
+    const qdrant = vectorIsQdrant();
+    const trs = rows.map((row, index) => `
+      <tr class="es-doc-row" data-vector-row="${index}" title="点击查看 / 编辑实体">
+        <td class="row-number">${(qdrant ? 0 : vectorState.queryOffset) + index + 1}</td>
+        <td class="es-doc-id">${escapeHtml(vectorRowId(row) == null ? "—" : String(vectorRowId(row)))}</td>
+        <td class="es-doc-source">${highlightJson(row, 0)}</td>
+      </tr>`).join("");
+    const hasPrev = qdrant ? false : vectorState.queryOffset > 0;
+    const hasNext = qdrant ? vectorState.nextOffset != null : rows.length >= vectorState.queryLimit;
+    box.innerHTML = `
+      <div class="es-results-meta">${vectorState.queryMs != null ? `返回 <b>${rows.length}</b> 行 · ${vectorState.queryMs} ms${qdrant ? "" : ` · offset ${vectorState.queryOffset}`}` : "点击“查询”浏览实体；留空过滤可浏览全部（Milvus 需集合已加载）。"}</div>
+      <div class="object-table-wrap es-doc-wrap">
+        <table class="object-table" data-resize-key="vector-rows">
+          <colgroup><col style="width:48px"><col style="width:160px"><col></colgroup>
+          <thead><tr><th class="row-number">#</th><th>ID<span class="col-resizer" data-gcol="1"></span></th><th>实体<span class="col-resizer" data-gcol="2"></span></th></tr></thead>
+          <tbody>${trs || '<tr><td colspan="3" class="empty-table">没有数据。点击“查询”浏览实体。</td></tr>'}</tbody>
+        </table>
+      </div>
+      <div class="es-pager">
+        <button class="ghost-button" data-action="vector-query-prev" ${hasPrev ? "" : "disabled"}>‹ 上一页</button>
+        <button class="ghost-button" data-action="vector-query-next" ${hasNext ? "" : "disabled"}>下一页 ›</button>
+        <button class="ghost-button" data-action="vector-query-reset">回到首页</button>
+      </div>`;
+    $$(".es-doc-row", box).forEach((row) => row.addEventListener("click", () => vectorEntityModal("edit", rows[Number(row.dataset.vectorRow)])));
+    applyGenericColWidths();
+  }
+
+  async function vectorQueryRun() {
+    const connection = requireVectorConnection();
+    if (!vectorState.collection) return;
+    vectorState.queryFilter = $("#vector-query-filter")?.value?.trim() ?? vectorState.queryFilter;
+    vectorState.queryLimit = Number($("#vector-query-limit")?.value || vectorState.queryLimit);
+    vectorState.queryWithVector = Boolean($("#vector-with-vector")?.checked);
+    let filter = null;
+    if (vectorState.queryFilter) {
+      if (vectorIsQdrant()) { try { filter = JSON.parse(vectorState.queryFilter); } catch { toast("过滤无效", "Qdrant 过滤必须是合法 JSON 对象。", "danger"); return; } }
+      else filter = vectorState.queryFilter;
+    }
+    const box = $("#vector-query-results");
+    if (box) box.innerHTML = '<div class="tree-loading">正在查询…</div>';
+    try {
+      const result = await backendCall("vector_query", {
+        connectionId: connection.id,
+        request: { connectionId: connection.id, collection: vectorState.collection, filter, limit: vectorState.queryLimit, offset: vectorState.queryOffset, pageToken: vectorState.queryPageToken, outputFields: [], withVector: vectorState.queryWithVector, operationId: operationId() },
+      });
+      vectorState.rows = result.rows || [];
+      vectorState.nextOffset = result.nextOffset ?? null;
+      vectorState.queryMs = result.durationMs;
+      renderVectorQueryResults();
+      refreshAuditOnly();
+    } catch (error) {
+      showOperationError(error, "标量查询失败");
+      renderVectorQueryResults();
+    }
+  }
+
+  async function vectorLoadSchema() {
+    const connection = requireVectorConnection();
+    if (!vectorState.collection) return;
+    const box = $("#vector-schema-body");
+    if (box) box.innerHTML = '<div class="tree-loading">正在读取 Schema…</div>';
+    try {
+      vectorState.detail = await backendCall("vector_describe", { connectionId: connection.id, name: vectorState.collection, operationId: operationId() });
+      renderVectorSchema();
+    } catch (error) {
+      if (box) box.innerHTML = `<div class="tree-error">${escapeHtml(errorMessage(error))}</div>`;
+      showOperationError(error, "Schema 读取失败");
+    }
+  }
+
+  function renderVectorSchema() {
+    const box = $("#vector-schema-body");
+    if (!box) return;
+    const detail = vectorState.detail;
+    if (!detail) { box.innerHTML = '<div class="empty-table">点击“刷新”读取 Schema。</div>'; return; }
+    const fields = (detail.fields || []).map((f) => `
+      <tr>
+        <td>${escapeHtml(f.name || "<default>")}</td>
+        <td>${escapeHtml(f.dataType)}</td>
+        <td>${f.isPrimary ? "主键" : f.isVector ? "向量" : "标量"}</td>
+        <td class="numeric">${f.dim ?? "—"}</td>
+        <td>${escapeHtml(f.metric || "—")}</td>
+      </tr>`).join("");
+    const indexes = (detail.indexes || []).map((i) => `
+      <tr><td>${escapeHtml(i.name)}</td><td>${escapeHtml(i.field || "<default>")}</td><td>${escapeHtml(i.indexType || "—")}</td><td>${escapeHtml(i.metric || "—")}</td></tr>`).join("");
+    box.innerHTML = `
+      <div class="vector-schema-meta">${detail.rowCount != null ? `行数 <b>${formatCount(detail.rowCount)}</b>` : ""}${detail.loaded != null ? ` · ${detail.loaded ? "已加载" : "未加载"}` : ""}</div>
+      <div class="object-table-wrap"><table class="object-table"><thead><tr><th>字段</th><th>类型</th><th>角色</th><th class="numeric">维度</th><th>度量</th></tr></thead><tbody>${fields || '<tr><td colspan="5" class="empty-table">无字段信息</td></tr>'}</tbody></table></div>
+      <div class="es-panel-head"><strong>索引</strong></div>
+      <div class="object-table-wrap"><table class="object-table"><thead><tr><th>名称</th><th>字段</th><th>类型</th><th>度量</th></tr></thead><tbody>${indexes || '<tr><td colspan="4" class="empty-table">无索引信息</td></tr>'}</tbody></table></div>
+      <div class="es-panel-head"><strong>原始描述</strong></div>
+      <pre class="es-json">${highlightJson(detail.raw)}</pre>`;
+  }
+
+  function vectorMilvusTemplate() {
+    const fields = vectorState.detail?.fields || [];
+    const obj = {};
+    for (const f of fields) {
+      if (f.isVector) obj[f.name] = [];
+      else if (/int/i.test(f.dataType)) obj[f.name] = 0;
+      else if (/float|double/i.test(f.dataType)) obj[f.name] = 0;
+      else if (/bool/i.test(f.dataType)) obj[f.name] = false;
+      else if (/json|array/i.test(f.dataType)) obj[f.name] = {};
+      else obj[f.name] = "";
+    }
+    return Object.keys(obj).length ? obj : { id: 0, vector: [] };
+  }
+
+  function vectorEntityModal(mode, row) {
+    requireVectorConnection();
+    if (!vectorState.collection) { toast("没有打开的集合", "请先打开一个集合。", "danger"); return; }
+    vectorEntityModalMode = mode;
+    vectorState.currentRow = mode === "edit" ? row : null;
+    const qdrant = vectorIsQdrant();
+    const template = mode === "new" ? (qdrant ? { id: 1, vector: [], payload: {} } : vectorMilvusTemplate()) : (row ?? {});
+    const text = JSON.stringify(template, null, 2);
+    const hint = qdrant
+      ? "Qdrant 点需包含 id、vector，payload 可选；保存执行 upsert。可粘贴数组批量写入。"
+      : "Milvus 实体为字段/值对象；保存执行 upsert（需含主键）。可粘贴数组批量写入。";
+    showModal(mode === "new" ? "新建实体" : "实体详情", mode === "new" ? "INSERT / UPSERT" : "ENTITY", `
+      <div class="form-note"><svg><use href="#i-shield"/></svg>${hint}</div>
+      <textarea id="vector-entity-body" class="modal-textarea es-doc-source-editor" spellcheck="false">${escapeHtml(text)}</textarea>
+      <div class="modal-footer">
+        <button class="secondary-button" data-close-modal>取消</button>
+        ${mode === "new" ? "" : '<button class="danger-button" data-action="vector-delete-entity">删除实体</button>'}
+        <button class="primary-button" data-action="vector-save-entity">${mode === "new" ? "写入" : "保存"}</button>
+      </div>`, { wide: true });
+  }
+
+  async function vectorSaveEntity() {
+    const connection = requireVectorConnection();
+    const text = $("#vector-entity-body")?.value || "";
+    let parsed;
+    try { parsed = JSON.parse(text); } catch { throw new Error("实体必须是合法 JSON。"); }
+    const rows = Array.isArray(parsed) ? parsed : [parsed];
+    if (!rows.length || rows.some((r) => !r || typeof r !== "object" || Array.isArray(r))) throw new Error("实体必须是 JSON 对象或对象数组。");
+    const result = await backendCall("vector_upsert", { connectionId: connection.id, request: { connectionId: connection.id, collection: vectorState.collection, rows, operationId: operationId() } });
+    closeModal();
+    toast("实体已写入", `${result.affected ?? rows.length} 行 · ${vectorState.collection}`);
+    if (vectorState.tab === "search" && vectorState.hits.length) await vectorSearch();
+    else if (vectorState.tab === "query") await vectorQueryRun();
+    refreshAuditOnly();
+  }
+
+  function vectorDeleteEntity() {
+    const connection = vectorConnection();
+    const row = vectorState.currentRow;
+    const id = vectorRowId(row);
+    if (!connection || id == null) { toast("无法确定主键", "该实体缺少可识别的主键，请用“删除实体”按过滤删除。", "danger"); return; }
+    confirmDangerous(`DELETE ${vectorState.collection}/${id}`, `${connection.name}\n删除集合 ${vectorState.collection} 中主键为 ${id} 的实体。\n影响：永久删除该实体。`, async () => {
+      await backendCall("vector_delete", { connectionId: connection.id, request: { connectionId: connection.id, collection: vectorState.collection, ids: [id], filter: null, operationId: operationId() }, confirmedDangerous: true });
+      closeModal();
+      toast("实体已删除", `${vectorState.collection}/${id} · 操作已写入只追加审计。`, "danger");
+      if (vectorState.tab === "search" && vectorState.hits.length) await vectorSearch();
+      else if (vectorState.tab === "query") await vectorQueryRun();
+      refreshAuditOnly();
+    });
+  }
+
+  function vectorDeleteEntitiesModal() {
+    requireVectorConnection();
+    if (!vectorState.collection) { toast("没有打开的集合", "请先打开一个集合。", "danger"); return; }
+    const qdrant = vectorIsQdrant();
+    showModal("删除实体", "DELETE ENTITIES", `
+      <div class="form-grid">
+        <label class="full">按主键 ID（逗号分隔）<input id="vector-delete-ids" spellcheck="false" placeholder="1, 2, 3" /></label>
+        <label class="full">或按过滤${qdrant ? "（JSON 对象）" : "（布尔表达式）"}<textarea id="vector-delete-filter" class="modal-textarea" spellcheck="false" placeholder='${qdrant ? '{"must":[{"key":"city","match":{"value":"Berlin"}}]}' : 'id in [1, 2, 3]'}'></textarea></label>
+      </div>
+      <div class="form-note danger-note"><svg><use href="#i-warning"/></svg>按 ID 或过滤二选一；删除需二次确认并写入只追加审计。</div>
+      <div class="modal-footer"><button class="secondary-button" data-close-modal>取消</button><button class="danger-button" data-action="vector-delete-confirm">删除实体</button></div>`, { wide: true });
+    $("#vector-delete-ids")?.focus();
+  }
+
+  function vectorDeleteConfirm() {
+    const connection = requireVectorConnection();
+    const qdrant = vectorIsQdrant();
+    const idsText = $("#vector-delete-ids")?.value?.trim() || "";
+    const filterText = $("#vector-delete-filter")?.value?.trim() || "";
+    const ids = idsText ? idsText.split(",").map((s) => s.trim()).filter(Boolean).map((s) => /^-?\d+$/.test(s) ? Number(s) : s) : [];
+    let filter = null;
+    if (filterText) {
+      if (qdrant) { try { filter = JSON.parse(filterText); } catch { throw new Error("Qdrant 过滤必须是合法 JSON 对象。"); } }
+      else filter = filterText;
+    }
+    if (!ids.length && !filter) throw new Error("请填写主键 ID 或过滤条件。");
+    const summary = ids.length ? `ids [${ids.join(", ")}]` : `filter ${filterText}`;
+    confirmDangerous(`DELETE ${vectorState.collection}`, `${connection.name}\n删除集合 ${vectorState.collection} 中匹配 ${summary} 的实体。\n影响：永久删除匹配的实体。`, async () => {
+      const result = await backendCall("vector_delete", { connectionId: connection.id, request: { connectionId: connection.id, collection: vectorState.collection, ids, filter, operationId: operationId() }, confirmedDangerous: true });
+      closeModal();
+      toast("实体已删除", `${result.affected ?? "匹配"} 行 · 操作已写入只追加审计。`, "danger");
+      if (vectorState.tab === "search" && vectorState.hits.length) await vectorSearch();
+      else if (vectorState.tab === "query") await vectorQueryRun();
+      refreshAuditOnly();
+    });
+  }
+
+  function vectorCreateCollectionModal() {
+    const connection = requireVectorConnection();
+    const qdrant = vectorIsQdrant();
+    const template = qdrant
+      ? { vectors: { size: 4, distance: "Cosine" } }
+      : { schema: { fields: [ { fieldName: "id", dataType: "Int64", isPrimary: true }, { fieldName: "vector", dataType: "FloatVector", elementTypeParams: { dim: 4 } } ] }, indexParams: [ { fieldName: "vector", indexType: "AUTOINDEX", metricType: "L2" } ] };
+    showModal("新建集合", "CREATE COLLECTION", `
+      <div class="form-grid">
+        <label class="full">集合名称<input id="vector-create-name" spellcheck="false" placeholder="例如 items" /></label>
+        <label class="full">${qdrant ? "vectors 配置（JSON）" : "schema / indexParams（JSON）"}<textarea id="vector-create-body" class="modal-textarea" spellcheck="false">${escapeHtml(JSON.stringify(template, null, 2))}</textarea></label>
+      </div>
+      <div class="form-note"><svg><use href="#i-shield"/></svg>${qdrant ? "Qdrant 通过 vectors 配置创建集合，distance 可为 Cosine / Euclid / Dot。" : "Milvus 通过 schema + indexParams 创建集合；也可用快速创建 {\"dimension\":4,\"metricType\":\"L2\"}。"}</div>
+      <div class="modal-footer"><button class="secondary-button" data-close-modal>取消</button><button class="primary-button" data-action="vector-create-collection-save">创建集合</button></div>`, { wide: true });
+    $("#vector-create-name")?.focus();
+  }
+
+  async function vectorCreateCollection() {
+    const connection = requireVectorConnection();
+    const name = $("#vector-create-name")?.value.trim() || "";
+    if (!name) throw new Error("请填写集合名称。");
+    const bodyText = $("#vector-create-body")?.value.trim() || "";
+    let body;
+    try { body = JSON.parse(bodyText || "{}"); } catch { throw new Error("创建配置必须是合法 JSON。"); }
+    await backendCall("vector_create_collection", { connectionId: connection.id, request: { connectionId: connection.id, name, body, operationId: operationId() } });
+    closeModal();
+    toast("集合已创建", name);
+    await refreshVectorCollections();
+    const group = $(`.connection-group[data-connection-id="${CSS.escape(connection.id)}"]`);
+    if (group) { group.dataset.loaded = "false"; await loadConnectionTree(group); }
+    if (currentWorkspace() === "objects") renderObjectsView();
+    refreshAuditOnly();
+  }
+
+  function vectorDropCollection(name = null) {
+    const connection = vectorConnection();
+    const target = name || selectedVectorCollection();
+    if (!connection || !target) { toast("没有选中的集合", "请先选择一个集合。", "danger"); return; }
+    confirmDangerous(`DROP COLLECTION ${target}`, `${connection.name}\n删除集合 ${target}\n影响：永久删除该集合及其全部实体与索引。`, async () => {
+      await backendCall("vector_drop_collection", { connectionId: connection.id, name: target, confirmedDangerous: true, operationId: operationId() });
+      toast("集合已删除", `${target} · 操作已写入只追加审计。`, "danger");
+      if (vectorState.collection === target) { vectorState.collection = null; vectorState.hits = []; vectorState.rows = []; vectorState.detail = null; }
+      await refreshVectorCollections();
+      const group = $(`.connection-group[data-connection-id="${CSS.escape(connection.id)}"]`);
+      if (group) { group.dataset.loaded = "false"; await loadConnectionTree(group); }
+      if (currentWorkspace() === "objects") renderObjectsView();
+      if (currentWorkspace() === "vector") renderVectorView();
+      refreshAuditOnly();
+    });
+  }
+
+  async function vectorSendRest() {
+    const connection = requireVectorConnection();
+    const method = $("#vector-rest-method")?.value || "GET";
+    const path = $("#vector-rest-path")?.value.trim() || "/";
+    const bodyText = $("#vector-rest-body")?.value.trim() || "";
+    vectorState.restMethod = method;
+    vectorState.restPath = path;
+    vectorState.restBody = bodyText;
+    let body = null;
+    if (bodyText) {
+      try { body = JSON.parse(bodyText); } catch { toast("请求体无效", "请输入合法 JSON 或留空。", "danger"); return; }
+    }
+    const send = async (confirmed) => {
+      const pre = $("#vector-rest-response");
+      if (pre) pre.textContent = "请求中…";
+      try {
+        const result = await backendCall("vector_rest", { connectionId: connection.id, request: { connectionId: connection.id, method, path, body, operationId: operationId(), confirmedDangerous: confirmed } });
+        vectorState.restResult = result;
+        renderVectorRestResponse();
+        refreshAuditOnly();
+      } catch (error) {
+        if (pre) pre.textContent = errorMessage(error);
+        showOperationError(error, "REST 请求失败");
+      }
+    };
+    if (method === "DELETE") {
+      confirmDangerous(`DELETE ${path}`, `${connection.name}\nDELETE ${path}\n影响：可能删除集合、实体或资源。`, () => send(true));
+    } else {
+      await send(false);
+    }
+  }
+
+  function renderVectorRestResponse() {
+    const pre = $("#vector-rest-response");
+    const status = $("#vector-rest-status");
+    if (!pre) return;
+    const result = vectorState.restResult;
+    if (!result) {
+      pre.textContent = "发送请求后在这里显示原样响应。";
+      if (status) status.textContent = "";
+      return;
+    }
+    if (status) status.textContent = `HTTP ${result.status} · ${result.durationMs} ms`;
+    pre.innerHTML = highlightJson(result.body);
+  }
+
   function placeContextMenu(event, html) {
     event.preventDefault();
     contextMenu.innerHTML = html;
@@ -5141,8 +5849,28 @@ export function mountUi() {
       ? `${menuButton("console-open", "terminal", "命令控制台")}${menuButton("redis-create", "plus", "新建键")}${menuButton("redis-scan", "search", "SCAN 键空间")}${menuButton("users", "user", "ACL 用户")}${menuButton("export", "export", "导出匹配键")}<span class="context-sep"></span><button class="danger-item" data-action="delete-connection"><svg><use href="#i-warning"/></svg>删除连接</button>`
       : family === "search"
       ? `${menuButton("es-open-browser", "grid", "打开索引浏览器")}${menuButton("es-create-index", "plus", "新建索引")}${menuButton("es-objects-refresh", "refresh", "刷新索引")}<span class="context-sep"></span><button class="danger-item" data-action="delete-connection"><svg><use href="#i-warning"/></svg>删除连接</button>`
+      : family === "vector"
+      ? `${menuButton("vector-open-browser", "grid", "打开集合浏览器")}${menuButton("vector-create-collection", "plus", "新建集合")}${menuButton("vector-objects-refresh", "refresh", "刷新集合")}<span class="context-sep"></span><button class="danger-item" data-action="delete-connection"><svg><use href="#i-warning"/></svg>删除连接</button>`
       : `${menuButton("new-query", "query", "新建查询")}${menuButton("console-open", "terminal", "命令控制台")}${menuButton("compare-from-schema", "compare", "结构比较")}${menuButton("users", "user", "用户与权限")}<span class="context-sep"></span><button class="danger-item" data-action="delete-connection"><svg><use href="#i-warning"/></svg>删除连接</button>`);
     placeContextMenu(event, items);
+  }
+
+  function showVectorCollectionContext(event, vectorRow) {
+    const group = vectorRow.closest(".connection-group");
+    const connectionId = group?.dataset.connectionId || vectorRow.dataset.connectionId || activeConnectionId;
+    if (connectionId && connectionId !== activeConnectionId) setActiveConnectionState(connectionLookup.get(connectionId));
+    vectorState.connectionId = connectionId;
+    vectorState.protocol = connectionLookup.get(connectionId)?.protocol || vectorState.protocol;
+    vectorState.collection = vectorRow.dataset.vectorCollection;
+    $$(".tree-row.selected").forEach((row) => row.classList.remove("selected"));
+    vectorRow.classList.add("selected");
+    placeContextMenu(event, `
+      <span class="context-label">${escapeHtml(vectorState.collection)}</span>
+      ${menuButton("vector-open-collection", "grid", "打开集合浏览")}
+      ${menuButton("vector-context-schema", "table", "查看 Schema / 索引")}
+      ${menuButton("vector-new-entity", "plus", "新建实体")}
+      <span class="context-sep"></span>
+      <button class="danger-item" data-action="vector-drop-collection"><svg><use href="#i-warning"/></svg>删除集合</button>`);
   }
 
   function showEsIndexContext(event, esRow) {
@@ -8397,8 +9125,9 @@ export function mountUi() {
     const category = objectsState.category;
     const sql = connection && protocolFamily(connection.protocol) === "sql";
     const isSearch = connection && protocolFamily(connection.protocol) === "search";
+    const isVector = connection && protocolFamily(connection.protocol) === "vector";
     const toolbar = $(".objects-toolbar");
-    if (toolbar) toolbar.hidden = Boolean(isSearch);
+    if (toolbar) toolbar.hidden = Boolean(isSearch || isVector);
     const inSchema = sql && objectsState.schema;
     const selected = Boolean(objectsState.selected);
     const scope = inSchema ? category : "database";
@@ -8472,7 +9201,7 @@ export function mountUi() {
   }
 
   function welcomeHtml() {
-    const descriptions = { mysql: "MySQL 5.7 / 8.x、MariaDB", postgres: "PostgreSQL 12+", sqlite: "本机 .sqlite / .db 文件", redis: "单机、哨兵与集群", elasticsearch: "Elasticsearch 7.x / 8.x、OpenSearch" };
+    const descriptions = { mysql: "MySQL 5.7 / 8.x、MariaDB", postgres: "PostgreSQL 12+", sqlite: "本机 .sqlite / .db 文件", redis: "单机、哨兵与集群", elasticsearch: "Elasticsearch 7.x / 8.x、OpenSearch", milvus: "Milvus 2.4+ / Zilliz Cloud", qdrant: "Qdrant 1.x 向量检索" };
     return `<div class="welcome">
       <div class="brand-lockup"><span class="welcome-mark"><svg aria-hidden="true"><use href="#brand-luxbase"/></svg></span><span class="brand-wordmark"><b>Lux</b>Base</span></div>
       <p>先创建一个连接。连接配置与密码都加密保存在本机的 LuxBase 本地保险库里。</p>
@@ -8513,6 +9242,11 @@ export function mountUi() {
     if (protocolFamily(protocol) === "search") {
       renderObjectsScope(connection, null, {});
       renderEsObjectsView(connection);
+      return;
+    }
+    if (protocolFamily(protocol) === "vector") {
+      renderObjectsScope(connection, null, {});
+      renderVectorObjectsView(connection);
       return;
     }
     const schema = objectsState.schema;
@@ -10067,6 +10801,14 @@ export function mountUi() {
         showWorkspace("es");
         return;
       }
+      if (name === "vector") {
+        const conn = activeFamily === "vector" ? activeConnectionId : lastVectorConn;
+        if (conn && conn !== activeConnectionId) setActiveConnectionState(connectionLookup.get(conn));
+        const snap = vectorSessions.get(conn);
+        if (snap && vectorState.connectionId !== conn) Object.assign(vectorState, snap, { connectionId: conn, protocol: connectionLookup.get(conn)?.protocol });
+        showWorkspace("vector");
+        return;
+      }
       showWorkspace(name);
       return;
     }
@@ -10165,6 +10907,15 @@ export function mountUi() {
       await openEsIndex(target.dataset.esIndex);
       return;
     }
+    if (target.dataset.vectorCollection) {
+      const group = target.closest(".connection-group");
+      const connectionId = group?.dataset.connectionId || activeConnectionId;
+      if (connectionId && connectionId !== activeConnectionId) setActiveConnectionState(connectionLookup.get(connectionId));
+      $$(".tree-row.selected").forEach((row) => row.classList.remove("selected"));
+      target.classList.add("selected");
+      await openVectorCollection(target.dataset.vectorCollection);
+      return;
+    }
     if (target.dataset.openRedis) {
       const db = Number(target.closest("[data-redis-key-list]")?.dataset.redisKeyList ?? currentRedisDb ?? 0);
       await openRedisKey(target.dataset.openRedis, target.dataset.keyType, db, target.dataset.keyB64 || null);
@@ -10206,6 +10957,10 @@ export function mountUi() {
     }
     if (target.dataset.esTab) {
       setEsTab(target.dataset.esTab);
+      return;
+    }
+    if (target.dataset.vectorTab) {
+      setVectorTab(target.dataset.vectorTab);
       return;
     }
     if (target.hasAttribute("data-open-console")) {
@@ -11075,6 +11830,92 @@ export function mountUi() {
         esDocView = "edit";
         esDocModal(esDocModalDoc);
         break;
+      case "vector-search":
+        await vectorSearch();
+        break;
+      case "vector-query":
+        vectorState.queryOffset = 0;
+        vectorState.queryPageToken = null;
+        await vectorQueryRun();
+        break;
+      case "vector-query-next":
+        if (vectorIsQdrant()) vectorState.queryPageToken = vectorState.nextOffset;
+        else vectorState.queryOffset += vectorState.queryLimit;
+        await vectorQueryRun();
+        break;
+      case "vector-query-prev":
+        if (!vectorIsQdrant()) { vectorState.queryOffset = Math.max(0, vectorState.queryOffset - vectorState.queryLimit); await vectorQueryRun(); }
+        break;
+      case "vector-query-reset":
+        vectorState.queryOffset = 0;
+        vectorState.queryPageToken = null;
+        await vectorQueryRun();
+        break;
+      case "vector-open-browser":
+        if (activeConnectionId) setObjectsScope(activeConnectionId, null);
+        showWorkspace("objects");
+        break;
+      case "vector-open-collection": {
+        const name = selectedVectorCollection();
+        if (name) await openVectorCollection(name);
+        else toast("没有选中的集合", "请先在列表中选择一个集合。", "danger");
+        break;
+      }
+      case "vector-context-schema":
+        await openVectorCollection(vectorState.collection);
+        setVectorTab("schema");
+        break;
+      case "vector-refresh":
+        if (vectorState.tab === "schema") await vectorLoadSchema();
+        else if (vectorState.tab === "search" && vectorState.hits.length) await vectorSearch();
+        else if (vectorState.tab === "query") await vectorQueryRun();
+        else if (vectorState.collection) await vectorLoadSchema();
+        else await refreshVectorCollections().then(() => renderVectorView()).catch((error) => showOperationError(error, "刷新失败"));
+        break;
+      case "vector-refresh-schema":
+        await vectorLoadSchema();
+        break;
+      case "vector-new-entity":
+        vectorEntityModal("new");
+        break;
+      case "vector-save-entity":
+        try { await vectorSaveEntity(); } catch (error) { showOperationError(error, "实体保存失败"); }
+        break;
+      case "vector-delete-entity":
+        vectorDeleteEntity();
+        break;
+      case "vector-delete-entities":
+        vectorDeleteEntitiesModal();
+        break;
+      case "vector-delete-confirm":
+        try { vectorDeleteConfirm(); } catch (error) { showOperationError(error, "删除请求无效"); }
+        break;
+      case "vector-create-collection":
+        vectorCreateCollectionModal();
+        break;
+      case "vector-create-collection-save":
+        try { await vectorCreateCollection(); } catch (error) { showOperationError(error, "集合创建失败"); }
+        break;
+      case "vector-drop-collection":
+        vectorDropCollection();
+        break;
+      case "vector-objects-refresh":
+        try {
+          await refreshVectorCollections();
+          const group = $(`.connection-group[data-connection-id="${CSS.escape(vectorState.connectionId)}"]`);
+          if (group) { group.dataset.loaded = "false"; await loadConnectionTree(group); }
+          renderObjectsView();
+        } catch (error) { showOperationError(error, "集合刷新失败"); }
+        break;
+      case "vector-send-rest":
+        await vectorSendRest();
+        break;
+      case "vector-copy-rest": {
+        const text = $("#vector-rest-response")?.textContent || "";
+        const ok = await copyToClipboard(textCopyPayload(text));
+        toast(ok ? "已复制响应" : "复制失败", ok ? `${text.length} 字符写入剪贴板。` : "系统剪贴板不可用。", ok ? "success" : "danger");
+        break;
+      }
       case "table-designer":
         if (!activeSupports("metadata")) toast("当前协议不支持", "当前连接的协议描述未声明表结构能力。", "danger");
         else await tableDesignerModal();
@@ -11509,6 +12350,11 @@ export function mountUi() {
     const esRow = event.target.closest?.("[data-es-index]");
     if (esRow) {
       showEsIndexContext(event, esRow);
+      return;
+    }
+    const vectorRow = event.target.closest?.("[data-vector-collection]");
+    if (vectorRow) {
+      showVectorCollectionContext(event, vectorRow);
     }
   });
 
@@ -11714,6 +12560,9 @@ export function mountUi() {
     }
     if (target?.id === "es-auth-mode") {
       updateEsAuthFields();
+    }
+    if (target?.id === "vector-auth-mode") {
+      updateVectorAuthFields($("#conn-protocol")?.value || "milvus");
     }
     if (target?.id === "redis-binary-encoding") {
       redisBinaryEncoding = target.value;

@@ -12,6 +12,8 @@ pub enum Protocol {
     Sqlite,
     Redis,
     Elasticsearch,
+    Milvus,
+    Qdrant,
 }
 
 impl Protocol {
@@ -20,6 +22,7 @@ impl Protocol {
             Self::Mysql | Self::Postgres | Self::Sqlite => DriverFamily::Sql,
             Self::Redis => DriverFamily::Kv,
             Self::Elasticsearch => DriverFamily::Search,
+            Self::Milvus | Self::Qdrant => DriverFamily::Vector,
         }
     }
 
@@ -30,6 +33,8 @@ impl Protocol {
             Self::Sqlite => "sqlite",
             Self::Redis => "redis",
             Self::Elasticsearch => "elasticsearch",
+            Self::Milvus => "milvus",
+            Self::Qdrant => "qdrant",
         }
     }
 }
@@ -40,6 +45,7 @@ pub enum DriverFamily {
     Sql,
     Kv,
     Search,
+    Vector,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -143,6 +149,10 @@ pub struct ConnectionConfig {
     /// The secret itself lives in the vault under the connection password account.
     #[serde(default)]
     pub es_auth_mode: Option<String>,
+    /// Vector-store authentication: `none`, `password` (Milvus username + password) or
+    /// `apiKey` (Milvus/Zilliz token, or Qdrant api-key). The secret lives in the vault.
+    #[serde(default)]
+    pub vector_auth_mode: Option<String>,
     #[serde(default)]
     pub pool: PoolConfig,
     #[serde(default = "default_query_timeout")]
@@ -299,6 +309,24 @@ impl DriverCapabilities {
             raw_command_console: true,
             unsupported_reason: Some(
                 "Elasticsearch is a search protocol; SQL grids, transactions and schema comparison do not apply. Use the index browser, document view and Query DSL / REST console."
+                    .into(),
+            ),
+        }
+    }
+
+    pub fn for_vector() -> Self {
+        Self {
+            sql: false,
+            transactions: false,
+            metadata: false,
+            editable_grid: false,
+            schema_compare: false,
+            users_permissions: false,
+            scan_keyspace: false,
+            typed_value_editors: false,
+            raw_command_console: true,
+            unsupported_reason: Some(
+                "Vector databases are not relational; SQL grids, transactions and schema comparison do not apply. Use the collection browser, schema view, vector search, scalar query and REST console."
                     .into(),
             ),
         }
@@ -811,6 +839,214 @@ pub struct EsRestRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EsRestResult {
+    pub status: u16,
+    pub body: Value,
+    pub duration_ms: u64,
+}
+
+/* ---------- Vector stores (Milvus / Qdrant driver family) ---------- */
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VectorInfo {
+    /// Human-readable product name, e.g. "Milvus" or "Qdrant".
+    pub product: String,
+    pub version: Option<String>,
+    pub collection_count: Option<u64>,
+    pub raw: Value,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VectorCollection {
+    pub name: String,
+    pub row_count: Option<u64>,
+    /// Load / health state: Milvus `Loaded`/`NotLoad`, Qdrant `green`/`yellow`/`red`.
+    pub status: Option<String>,
+    #[serde(default)]
+    pub vector_fields: Vec<String>,
+    #[serde(default)]
+    pub description: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VectorField {
+    pub name: String,
+    pub data_type: String,
+    pub is_primary: bool,
+    pub is_vector: bool,
+    pub dim: Option<u64>,
+    pub metric: Option<String>,
+    #[serde(default)]
+    pub description: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VectorIndex {
+    pub name: String,
+    pub field: String,
+    pub index_type: Option<String>,
+    pub metric: Option<String>,
+    #[serde(default)]
+    pub params: Value,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VectorCollectionDetail {
+    pub name: String,
+    pub row_count: Option<u64>,
+    pub loaded: Option<bool>,
+    pub fields: Vec<VectorField>,
+    pub indexes: Vec<VectorIndex>,
+    /// Native describe/config response for the advanced (raw JSON) view.
+    pub raw: Value,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VectorSearchRequest {
+    pub connection_id: ConnectionId,
+    pub collection: String,
+    /// Vector field to search (Milvus annsField / Qdrant named vector); defaults to the
+    /// collection's first/only vector field when empty.
+    #[serde(default)]
+    pub vector_field: Option<String>,
+    pub vector: Vec<f64>,
+    #[serde(default = "default_top_k")]
+    pub top_k: u32,
+    /// Milvus: a boolean expression string. Qdrant: a filter JSON object. Null = no filter.
+    #[serde(default)]
+    pub filter: Value,
+    #[serde(default)]
+    pub output_fields: Vec<String>,
+    /// Extra native search params merged into the request body.
+    #[serde(default)]
+    pub params: Value,
+    pub operation_id: String,
+}
+
+fn default_top_k() -> u32 {
+    10
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VectorHit {
+    /// Primary key / point id (number, string or UUID).
+    pub id: Value,
+    /// Milvus distance or Qdrant similarity score.
+    pub score: Option<f64>,
+    /// Entity fields (Milvus) or point payload + vector (Qdrant).
+    pub fields: Value,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VectorSearchResult {
+    pub hits: Vec<VectorHit>,
+    pub duration_ms: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VectorQueryRequest {
+    pub connection_id: ConnectionId,
+    pub collection: String,
+    /// Milvus boolean expression string / Qdrant filter object. Null = browse all.
+    #[serde(default)]
+    pub filter: Value,
+    #[serde(default = "default_query_limit")]
+    pub limit: u32,
+    #[serde(default)]
+    pub offset: u64,
+    /// Qdrant scroll cursor (last seen point id) for the next page; Milvus ignores it.
+    #[serde(default)]
+    pub page_token: Option<Value>,
+    #[serde(default)]
+    pub output_fields: Vec<String>,
+    #[serde(default)]
+    pub with_vector: bool,
+    pub operation_id: String,
+}
+
+fn default_query_limit() -> u32 {
+    50
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VectorQueryResult {
+    pub rows: Vec<Value>,
+    /// Qdrant scroll cursor for the next page; None when there are no more rows.
+    #[serde(default)]
+    pub next_offset: Option<Value>,
+    pub duration_ms: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VectorCreateRequest {
+    pub connection_id: ConnectionId,
+    pub name: String,
+    /// Native create body: Milvus full schema/indexParams object, or Qdrant vectors config.
+    #[serde(default)]
+    pub body: Value,
+    pub operation_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VectorUpsertRequest {
+    pub connection_id: ConnectionId,
+    pub collection: String,
+    /// Milvus entity objects, or Qdrant points `{ id, vector, payload }`.
+    pub rows: Vec<Value>,
+    pub operation_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VectorDeleteRequest {
+    pub connection_id: ConnectionId,
+    pub collection: String,
+    /// Delete by explicit ids; empty when deleting by filter.
+    #[serde(default)]
+    pub ids: Vec<Value>,
+    /// Milvus boolean expression string / Qdrant filter object.
+    #[serde(default)]
+    pub filter: Value,
+    pub operation_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VectorWriteResult {
+    pub affected: u64,
+    #[serde(default)]
+    pub ids: Vec<Value>,
+    pub duration_ms: u64,
+    pub raw: Value,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VectorRestRequest {
+    pub connection_id: ConnectionId,
+    pub method: String,
+    pub path: String,
+    #[serde(default)]
+    pub body: Option<Value>,
+    pub operation_id: String,
+    #[serde(default)]
+    pub confirmed_dangerous: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VectorRestResult {
     pub status: u16,
     pub body: Value,
     pub duration_ms: u64,

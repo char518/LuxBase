@@ -58,6 +58,8 @@
 [data-theme="dark"] .protocol-badge.sqlite { background: hsl(252, 51%, 56%); }
 [data-theme="dark"] .protocol-badge.redis { background: hsl(4, 64%, 52%); }
 [data-theme="dark"] .protocol-badge.es { background: hsl(179, 85%, 37%); }
+[data-theme="dark"] .protocol-badge.milvus { background: hsl(216, 77%, 52%); }
+[data-theme="dark"] .protocol-badge.qdrant { background: hsl(336, 72%, 47%); }
 [data-theme="dark"] .connection-copy strong { color: hsl(215, 38%, 89%); }
 [data-theme="dark"] .connection-copy small { color: hsl(214, 10%, 79%); }
 [data-theme="dark"] .health-dot { box-shadow: 0 0 0 2px rgba(21, 163, 109, 0.13); }
@@ -99,6 +101,8 @@
 [data-theme="dark"] .protocol-mini.mysql { background: hsl(190, 78%, 40%); }
 [data-theme="dark"] .protocol-mini.redis { background: hsl(4, 64%, 52%); }
 [data-theme="dark"] .protocol-mini.es { background: hsl(179, 85%, 37%); }
+[data-theme="dark"] .protocol-mini.milvus { background: hsl(216, 77%, 52%); }
+[data-theme="dark"] .protocol-mini.qdrant { background: hsl(336, 72%, 47%); }
 [data-theme="dark"] .protocol-mini.sql { background: hsl(216, 50%, 44%); }
 [data-theme="dark"] .new-tab { color: hsl(215, 10%, 81%); }
 [data-theme="dark"] .new-tab:hover { background: hsl(216, 22%, 14%); }
@@ -245,6 +249,14 @@
 [data-theme="dark"] .es-objects-count { color: hsl(216, 10%, 76%); }
 [data-theme="dark"] .es-object-table .object-row.selected td { background: hsl(217, 22%, 13%); }
 [data-theme="dark"] .es-object-table .object-name { color: hsl(213, 35%, 87%); }
+[data-theme="dark"] .vector-view.active { background: hsl(225, 22%, 14%); }
+[data-theme="dark"] .vector-view .es-tab.active::after { background: hsl(216, 77%, 52%); }
+[data-theme="dark"] .vector-bar .es-query-controls input { border: 1px solid hsl(215, 22%, 19%); background: hsl(220, 8%, 15%); color: hsl(214, 35%, 87%); }
+[data-theme="dark"] .vector-bar .es-query-controls input:focus { border-color: hsl(218, 85%, 78%); }
+[data-theme="dark"] .vector-schema-meta { color: hsl(212, 10%, 80%); }
+[data-theme="dark"] .vector-schema-meta b { color: hsl(213, 35%, 87%); }
+[data-theme="dark"] .vector-object-table .object-row.selected td { background: hsl(217, 22%, 13%); }
+[data-theme="dark"] .vector-object-table .object-name { color: hsl(213, 35%, 87%); }
 [data-theme="dark"] .grid-pending-bar { border-bottom: 1px solid hsl(39, 55%, 78%); background: hsl(40, 22%, 13%); color: hsl(39, 52%, 83%); }
 [data-theme="dark"] .data-grid td.cell-pending { background: hsl(44, 22%, 11%); box-shadow: inset 2px 0 0 hsl(40, 78%, 61%); }
 [data-theme="dark"] .value-help { border: 1px solid hsl(165, 12%, 20%); background: hsl(160, 22%, 14%); color: hsl(165, 10%, 83%); }

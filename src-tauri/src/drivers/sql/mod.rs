@@ -67,7 +67,7 @@ pub(crate) fn value_placeholders(
         Protocol::Mysql | Protocol::Sqlite => {
             vec![format!("({})", vec!["?"; column_count].join(", ")); row_count].join(", ")
         }
-        Protocol::Redis | Protocol::Elasticsearch => {
+        Protocol::Redis | Protocol::Elasticsearch | Protocol::Milvus | Protocol::Qdrant => {
             return Err(AppError::unsupported("Redis and Elasticsearch accept no SQL placeholders."))
         }
     })
@@ -106,7 +106,7 @@ impl SqlConnectionManager {
                 driver.connect(config, password).await?;
                 Arc::new(driver)
             }
-            Protocol::Redis | Protocol::Elasticsearch => {
+            Protocol::Redis | Protocol::Elasticsearch | Protocol::Milvus | Protocol::Qdrant => {
                 return Err(AppError::unsupported(
                     "Redis and Elasticsearch are handled exclusively through their own driver managers.",
                 ))
@@ -155,7 +155,7 @@ impl SqlConnectionManager {
                     Err(error) => Err(error),
                 }
             }
-            Protocol::Redis | Protocol::Elasticsearch => {
+            Protocol::Redis | Protocol::Elasticsearch | Protocol::Milvus | Protocol::Qdrant => {
                 return ConnectionTestResult {
                     ok: false,
                     latency_ms: started.elapsed().as_millis() as u64,

@@ -5,7 +5,7 @@
 # LuxBase
 
 **Navicat 的免费开源平替。**
-一个窗口管好 MySQL · PostgreSQL · SQLite · Redis · Elasticsearch —— 还内置 MCP server，让 AI 助手也能查你的库。
+一个窗口管好 MySQL · PostgreSQL · SQLite · Redis · Elasticsearch · Milvus · Qdrant —— 还内置 MCP server，让 AI 助手也能查你的库。
 
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 [![Release](https://img.shields.io/badge/release-v2.3.0-brightgreen.svg)](https://github.com/char518/LuxBase/releases)
@@ -24,7 +24,7 @@ LuxBase 是我自己写、自己天天在用的数据库客户端。起因很简
 
 | 你平时在 Navicat 里做的事 | LuxBase 对应 |
 | --- | --- |
-| 连 MySQL / PostgreSQL / SQLite | 一样支持，还多了 Redis 和 Elasticsearch |
+| 连 MySQL / PostgreSQL / SQLite | 一样支持，还多了 Redis、Elasticsearch、Milvus 和 Qdrant |
 | 表数据浏览、筛选、编辑 | 双击单元格直接改；多处修改一个事务提交、失败全回滚 |
 | SQL 查询、执行历史、执行计划 | Monaco 编辑器 + 执行历史 + 执行计划 |
 | 结果导出 | CSV / JSON Lines，文件名带表名和时间 |
@@ -36,12 +36,12 @@ LuxBase 是我自己写、自己天天在用的数据库客户端。起因很简
 
 ## 协议覆盖
 
-| | MySQL | PostgreSQL | SQLite | Redis | Elasticsearch |
-| --- | :-: | :-: | :-: | :-: | :-: |
-| 数据浏览与编辑 | ✓ | ✓ | ✓ | ✓ | ✓ |
-| 查询控制台 | SQL | SQL | SQL | 原始命令 | Query DSL / REST |
-| 传输与同步 | ✓ | ✓ | ✓ | — | — |
-| 结构比较 | ✓ | ✓ | ✓ | — | — |
+| | MySQL | PostgreSQL | SQLite | Redis | Elasticsearch | Milvus | Qdrant |
+| --- | :-: | :-: | :-: | :-: | :-: | :-: | :-: |
+| 数据浏览与编辑 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| 查询控制台 | SQL | SQL | SQL | 原始命令 | Query DSL / REST | 向量 / REST | 向量 / REST |
+| 传输与同步 | ✓ | ✓ | ✓ | — | — | — | — |
+| 结构比较 | ✓ | ✓ | ✓ | — | — | — | — |
 
 ## 好用的地方
 
@@ -49,6 +49,7 @@ LuxBase 是我自己写、自己天天在用的数据库客户端。起因很简
 - **改数据不用写 UPDATE** —— 结果表格双击就改，行数列数随便暂存，确认后**一个事务提交，出错全部回滚**。BLOB 也有 HEX / 文本预览和编辑。
 - **Redis 很完整** —— 按 DB 浏览键空间，二进制键值自动识别（UTF-8 / GBK / hex / base64），按类型编辑值，内嵌命令控制台，键多的库也不卡。
 - **ES 也能管** —— 索引、mapping、别名、文档增删改、Query DSL、REST 控制台。
+- **向量库也支持** —— Milvus（含 Zilliz Cloud）和 Qdrant：浏览集合、查看 schema 与索引、向量相似度检索、标量查询、实体/点增删改，还有原始 REST 控制台。删集合、删实体等危险操作二次确认并记入审计。
 - **大表传输专门优化过** —— keyset 分页 + 批量事务提交，进度、速度、预计剩余时间都看得到；可以选"先停索引、传完重建"，千万级以上的表会舒服很多。
 - **安全上比较较真** —— 密码 AES-256-GCM 加密存本机，不上传任何服务器；危险操作二次确认；所有操作进只追加的审计日志。
 - **连接可以带走** —— 批量导入导出、口令加密打包，换电脑不费劲。
@@ -68,7 +69,7 @@ LuxBase 是我自己写、自己天天在用的数据库客户端。起因很简
 }
 ```
 
-默认只读：表结构、单条 SELECT（默认 100 行、最多 1000 行）、Redis 扫描、ES 查询。把 `"args"` 改成 `["--allow-writes"]` 会多一个 `execute` 工具（单条写语句）。AI 的每一条查询和写入，都会记进 LuxBase 的审计日志。
+默认只读：表结构、单条 SELECT（默认 100 行、最多 1000 行）、Redis 扫描、ES 查询、Milvus/Qdrant 向量检索。把 `"args"` 改成 `["--allow-writes"]` 会多一个 `execute` 工具（单条写语句）。AI 的每一条查询和写入，都会记进 LuxBase 的审计日志。
 
 ## 安装（macOS）
 

@@ -372,7 +372,7 @@ fn sql_literal(protocol: &Protocol, value: &Value) -> String {
             match protocol {
                 Protocol::Mysql | Protocol::Sqlite => format!("X'{hex}'"),
                 Protocol::Postgres => format!("decode('{hex}', 'hex')"),
-                Protocol::Redis | Protocol::Elasticsearch => format!("'{}'", value.to_string().replace('\'', "''")),
+                Protocol::Redis | Protocol::Elasticsearch | Protocol::Milvus | Protocol::Qdrant => format!("'{}'", value.to_string().replace('\'', "''")),
             }
         }
         value => format!("'{}'", value.to_string().replace('\'', "''")),
@@ -385,7 +385,7 @@ fn quote_identifier(protocol: &Protocol, identifier: &str) -> String {
         Protocol::Postgres | Protocol::Sqlite => {
             format!("\"{}\"", identifier.replace('"', "\"\""))
         }
-        Protocol::Redis | Protocol::Elasticsearch => identifier.to_string(),
+        Protocol::Redis | Protocol::Elasticsearch | Protocol::Milvus | Protocol::Qdrant => identifier.to_string(),
     }
 }
 
@@ -402,6 +402,6 @@ pub(super) fn qualified_table(protocol: &Protocol, schema: &str, table: &str) ->
             table.replace('"', "\"\"")
         ),
         Protocol::Sqlite => format!("\"{}\"", table.replace('"', "\"\"")),
-        Protocol::Redis | Protocol::Elasticsearch => format!("\"{}\"", table.replace('"', "\"\"")),
+        Protocol::Redis | Protocol::Elasticsearch | Protocol::Milvus | Protocol::Qdrant => format!("\"{}\"", table.replace('"', "\"\"")),
     }
 }

@@ -8,6 +8,9 @@ use crate::models::{
     RedisCommandRequest, RedisCommandResult, RedisInfo, RedisScanRequest, RedisScanResult,
     RedisValue, SavedConnection, SqlBatchRequest, SqlExportRequest, SqlImportRequest, SqlRequest,
     SqlScriptRequest, SqlScriptResult,
+    VectorCollection, VectorCollectionDetail, VectorCreateRequest, VectorDeleteRequest, VectorInfo,
+    VectorQueryRequest, VectorQueryResult, VectorRestRequest, VectorRestResult, VectorSearchRequest,
+    VectorSearchResult, VectorUpsertRequest, VectorWriteResult,
 };
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
 use serde::{Deserialize, Serialize};
@@ -159,6 +162,42 @@ pub async fn app_bootstrap(state: State<'_, Arc<AppState>>) -> AppResult<AppBoot
                     "Table design and foreign keys do not apply".into(),
                 ],
             },
+            ProtocolDescriptor {
+                id: Protocol::Milvus,
+                family: DriverFamily::Vector,
+                label: "Milvus".into(),
+                supports: vec![
+                    "vector_collections".into(),
+                    "vector_schema".into(),
+                    "vector_search".into(),
+                    "vector_query".into(),
+                    "vector_entities".into(),
+                    "vector_rest_console".into(),
+                    "tls".into(),
+                ],
+                unsupported: vec![
+                    "SQL grids, transactions and schema comparison do not apply".into(),
+                    "Table design and foreign keys do not apply".into(),
+                ],
+            },
+            ProtocolDescriptor {
+                id: Protocol::Qdrant,
+                family: DriverFamily::Vector,
+                label: "Qdrant".into(),
+                supports: vec![
+                    "vector_collections".into(),
+                    "vector_schema".into(),
+                    "vector_search".into(),
+                    "vector_query".into(),
+                    "vector_entities".into(),
+                    "vector_rest_console".into(),
+                    "tls".into(),
+                ],
+                unsupported: vec![
+                    "SQL grids, transactions and schema comparison do not apply".into(),
+                    "Table design and foreign keys do not apply".into(),
+                ],
+            },
         ],
         security,
     })
@@ -181,6 +220,7 @@ pub async fn save_connection(
     let _ = state.sql.disconnect(&saved.id).await;
     let _ = state.kv.disconnect(&saved.id).await;
     let _ = state.search.disconnect(&saved.id).await;
+    let _ = state.vector.disconnect(&saved.id).await;
     Ok(saved)
 }
 
@@ -213,6 +253,7 @@ pub async fn test_connection(
         DriverFamily::Sql => state.sql.test(&config, password).await,
         DriverFamily::Kv => state.kv.test(&config, password).await,
         DriverFamily::Search => state.search.test(&config, password).await,
+        DriverFamily::Vector => state.vector.test(&config, password).await,
     };
     let _ = state.store.append_audit(
         Some(&config.id),
@@ -1025,7 +1066,7 @@ pub async fn sql_table_preview(
             table.replace('"', "\"\"")
         ),
         Protocol::Sqlite => format!("\"{}\"", table.replace('"', "\"\"")),
-        Protocol::Redis | Protocol::Elasticsearch => {
+        Protocol::Redis | Protocol::Elasticsearch | Protocol::Milvus | Protocol::Qdrant => {
             return Err(AppError::unsupported(
                 "Table preview is not available for the Redis KV or Elasticsearch search protocol.",
             ))
@@ -1263,6 +1304,9 @@ pub async fn list_identities(
         Protocol::Elasticsearch => Err(AppError::unsupported(
             "Elasticsearch security users/roles are managed via the _security API; use the REST console in this version.",
         )),
+        Protocol::Milvus | Protocol::Qdrant => Err(AppError::unsupported(
+            "Vector-store users/roles are managed server-side; use the REST console in this version.",
+        )),
     }
 }
 
@@ -1368,6 +1412,11 @@ pub async fn export_data(
                 "Elasticsearch export is not available in this version. Use the REST console with _search / scroll instead.",
             ));
         }
+        DriverFamily::Vector => {
+            return Err(AppError::unsupported(
+                "Vector-store export is not available in this version. Use the query console or REST console instead.",
+            ));
+        }
     }
     state.store.append_audit(
         Some(&connection_id),
@@ -1460,6 +1509,11 @@ pub async fn import_data(
         DriverFamily::Search => {
             return Err(AppError::unsupported(
                 "Elasticsearch import is not available in this version. Use the REST console with the _bulk API instead.",
+            ));
+        }
+        DriverFamily::Vector => {
+            return Err(AppError::unsupported(
+                "Vector-store import is not available in this version. Use the entity editor or REST console instead.",
             ));
         }
     }
@@ -1950,6 +2004,216 @@ pub async fn es_cancel(
     state.search.cancel(&connection_id, &operation_id).await
 }
 
+/* ---------- Vector stores (Milvus / Qdrant) ---------- */
+
+#[tauri::command]
+pub async fn vector_info(
+    state: State<'_, Arc<AppState>>,
+    connection_id: String,
+    operation_id: String,
+) -> AppResult<VectorInfo> {
+    let state = state_ref(&state);
+    state.ensure_running()?;
+    let config = state.connection(&connection_id)?;
+    let password = state.connection_password(&config)?;
+    state.vector.info(&config, password, &operation_id).await
+}
+
+#[tauri::command]
+pub async fn vector_collections(
+    state: State<'_, Arc<AppState>>,
+    connection_id: String,
+    operation_id: String,
+) -> AppResult<Vec<VectorCollection>> {
+    let state = state_ref(&state);
+    state.ensure_running()?;
+    let config = state.connection(&connection_id)?;
+    let password = state.connection_password(&config)?;
+    state.vector.list_collections(&config, password, &operation_id).await
+}
+
+#[tauri::command]
+pub async fn vector_describe(
+    state: State<'_, Arc<AppState>>,
+    connection_id: String,
+    name: String,
+    operation_id: String,
+) -> AppResult<VectorCollectionDetail> {
+    let state = state_ref(&state);
+    state.ensure_running()?;
+    let config = state.connection(&connection_id)?;
+    let password = state.connection_password(&config)?;
+    state.vector.describe_collection(&config, password, &name, &operation_id).await
+}
+
+#[tauri::command]
+pub async fn vector_create_collection(
+    state: State<'_, Arc<AppState>>,
+    connection_id: String,
+    request: VectorCreateRequest,
+) -> AppResult<()> {
+    let state = state_ref(&state);
+    state.ensure_running()?;
+    let config = state.connection(&connection_id)?;
+    let password = state.connection_password(&config)?;
+    let name = request.name.clone();
+    let result = state.vector.create_collection(&config, password, request).await;
+    state.store.append_audit(
+        Some(&connection_id), Some(&config.name), Some(config.protocol.as_str()), "vector_ddl",
+        &format!("CREATE COLLECTION {name}"),
+        result.as_ref().ok().map(|_| 1),
+        if result.is_ok() { "success" } else { "failure" },
+        result.as_ref().err().map(|error| error.message.as_str()),
+    )?;
+    result
+}
+
+#[tauri::command]
+pub async fn vector_drop_collection(
+    state: State<'_, Arc<AppState>>,
+    connection_id: String,
+    name: String,
+    confirmed_dangerous: bool,
+    operation_id: String,
+) -> AppResult<()> {
+    let state = state_ref(&state);
+    state.ensure_running()?;
+    let config = state.connection(&connection_id)?;
+    let password = state.connection_password(&config)?;
+    let result = state.vector.drop_collection(&config, password, &name, confirmed_dangerous, &operation_id).await;
+    state.store.append_audit(
+        Some(&connection_id), Some(&config.name), Some(config.protocol.as_str()), "vector_danger",
+        &format!("DROP COLLECTION {name}"),
+        result.as_ref().ok().map(|_| 1),
+        if result.is_ok() { "confirmed" } else { "refused" },
+        result.as_ref().err().map(|error| error.message.as_str()),
+    )?;
+    result
+}
+
+#[tauri::command]
+pub async fn vector_search(
+    state: State<'_, Arc<AppState>>,
+    connection_id: String,
+    request: VectorSearchRequest,
+) -> AppResult<VectorSearchResult> {
+    let state = state_ref(&state);
+    state.ensure_running()?;
+    let config = state.connection(&connection_id)?;
+    let password = state.connection_password(&config)?;
+    let collection = request.collection.clone();
+    let result = state.vector.search(&config, password, request).await;
+    state.store.append_audit(
+        Some(&connection_id), Some(&config.name), Some(config.protocol.as_str()), "vector_search",
+        &format!("VECTOR SEARCH {collection}"),
+        result.as_ref().ok().map(|value| value.hits.len() as i64),
+        if result.is_ok() { "success" } else { "failure" },
+        result.as_ref().err().map(|error| error.message.as_str()),
+    )?;
+    result
+}
+
+#[tauri::command]
+pub async fn vector_query(
+    state: State<'_, Arc<AppState>>,
+    connection_id: String,
+    request: VectorQueryRequest,
+) -> AppResult<VectorQueryResult> {
+    let state = state_ref(&state);
+    state.ensure_running()?;
+    let config = state.connection(&connection_id)?;
+    let password = state.connection_password(&config)?;
+    let collection = request.collection.clone();
+    let result = state.vector.query(&config, password, request).await;
+    state.store.append_audit(
+        Some(&connection_id), Some(&config.name), Some(config.protocol.as_str()), "vector_query",
+        &format!("QUERY {collection}"),
+        result.as_ref().ok().map(|value| value.rows.len() as i64),
+        if result.is_ok() { "success" } else { "failure" },
+        result.as_ref().err().map(|error| error.message.as_str()),
+    )?;
+    result
+}
+
+#[tauri::command]
+pub async fn vector_upsert(
+    state: State<'_, Arc<AppState>>,
+    connection_id: String,
+    request: VectorUpsertRequest,
+) -> AppResult<VectorWriteResult> {
+    let state = state_ref(&state);
+    state.ensure_running()?;
+    let config = state.connection(&connection_id)?;
+    let password = state.connection_password(&config)?;
+    let collection = request.collection.clone();
+    let count = request.rows.len();
+    let result = state.vector.upsert(&config, password, request).await;
+    state.store.append_audit(
+        Some(&connection_id), Some(&config.name), Some(config.protocol.as_str()), "vector_write",
+        &format!("UPSERT {count} rows into {collection}"),
+        result.as_ref().ok().map(|value| value.affected as i64),
+        if result.is_ok() { "success" } else { "failure" },
+        result.as_ref().err().map(|error| error.message.as_str()),
+    )?;
+    result
+}
+
+#[tauri::command]
+pub async fn vector_delete(
+    state: State<'_, Arc<AppState>>,
+    connection_id: String,
+    request: VectorDeleteRequest,
+    confirmed_dangerous: bool,
+) -> AppResult<VectorWriteResult> {
+    let state = state_ref(&state);
+    state.ensure_running()?;
+    let config = state.connection(&connection_id)?;
+    let password = state.connection_password(&config)?;
+    let collection = request.collection.clone();
+    let result = state.vector.delete(&config, password, request, confirmed_dangerous).await;
+    state.store.append_audit(
+        Some(&connection_id), Some(&config.name), Some(config.protocol.as_str()), "vector_danger",
+        &format!("DELETE entities from {collection}"),
+        result.as_ref().ok().map(|value| value.affected as i64),
+        if result.is_ok() { "confirmed" } else { "refused" },
+        result.as_ref().err().map(|error| error.message.as_str()),
+    )?;
+    result
+}
+
+#[tauri::command]
+pub async fn vector_rest(
+    state: State<'_, Arc<AppState>>,
+    connection_id: String,
+    request: VectorRestRequest,
+) -> AppResult<VectorRestResult> {
+    let state = state_ref(&state);
+    state.ensure_running()?;
+    let config = state.connection(&connection_id)?;
+    let password = state.connection_password(&config)?;
+    let summary = format!("{} {}", request.method.to_ascii_uppercase(), request.path);
+    let kind = if request.method.eq_ignore_ascii_case("DELETE") { "vector_danger" } else { "vector_rest" };
+    let result = state.vector.execute_rest(&config, password, request).await;
+    state.store.append_audit(
+        Some(&connection_id), Some(&config.name), Some(config.protocol.as_str()), kind,
+        &summary,
+        None,
+        if result.is_ok() { "success" } else { "failure" },
+        result.as_ref().err().map(|error| error.message.as_str()),
+    )?;
+    result
+}
+
+#[tauri::command]
+pub async fn vector_cancel(
+    state: State<'_, Arc<AppState>>,
+    connection_id: String,
+    operation_id: String,
+) -> AppResult<()> {
+    let state = state_ref(&state);
+    state.vector.cancel(&connection_id, &operation_id).await
+}
+
 #[tauri::command]
 pub async fn recent_audit(
     state: State<'_, Arc<AppState>>,
@@ -2067,6 +2331,7 @@ pub async fn test_saved_connection(
         DriverFamily::Sql => state.sql.test(&config, password).await,
         DriverFamily::Kv => state.kv.test(&config, password).await,
         DriverFamily::Search => state.search.test(&config, password).await,
+        DriverFamily::Vector => state.vector.test(&config, password).await,
     };
     state.store.append_audit(
         Some(&connection_id),
@@ -2092,6 +2357,7 @@ pub async fn delete_connection(
         DriverFamily::Sql => state.sql.disconnect(&connection_id).await?,
         DriverFamily::Kv => state.kv.disconnect(&connection_id).await?,
         DriverFamily::Search => state.search.disconnect(&connection_id).await?,
+        DriverFamily::Vector => state.vector.disconnect(&connection_id).await?,
     }
     state.store.delete_connection(&connection_id)?;
     state.forget_connection(&connection_id);
@@ -2259,6 +2525,7 @@ pub async fn disconnect_connection(
         DriverFamily::Sql => state.sql.disconnect(&connection_id).await?,
         DriverFamily::Kv => state.kv.disconnect(&connection_id).await?,
         DriverFamily::Search => state.search.disconnect(&connection_id).await?,
+        DriverFamily::Vector => state.vector.disconnect(&connection_id).await?,
     }
     state.store.append_audit(
         Some(&connection_id),
@@ -2367,7 +2634,7 @@ fn quote_identifier(protocol: &Protocol, identifier: &str) -> String {
         Protocol::Postgres | Protocol::Sqlite => {
             format!("\"{}\"", identifier.replace('"', "\"\""))
         }
-        Protocol::Redis | Protocol::Elasticsearch => identifier.to_string(),
+        Protocol::Redis | Protocol::Elasticsearch | Protocol::Milvus | Protocol::Qdrant => identifier.to_string(),
     }
 }
 
@@ -2384,7 +2651,7 @@ pub(crate) fn qualified_table(protocol: &Protocol, schema: &str, table: &str) ->
             table.replace('"', "\"\"")
         )),
         Protocol::Sqlite => Ok(format!("\"{}\"", table.replace('"', "\"\""))),
-        Protocol::Redis | Protocol::Elasticsearch => Err(AppError::unsupported(
+        Protocol::Redis | Protocol::Elasticsearch | Protocol::Milvus | Protocol::Qdrant => Err(AppError::unsupported(
             "SQL table operations are not available for Redis or Elasticsearch.",
         )),
     }

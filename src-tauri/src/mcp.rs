@@ -10,6 +10,7 @@ use crate::commands::{is_read_statement, reject_session_state_statement, sql_sta
 use crate::error::{AppError, AppResult};
 use crate::models::{
     ConnectionConfig, EsSearchRequest, MetadataRequest, Protocol, RedisScanRequest, SqlRequest,
+    VectorSearchRequest,
 };
 use crate::security::SecretStore;
 use crate::storage::LocalStore;
@@ -281,6 +282,36 @@ async fn call_tool(
                 "tookMs": result.took_ms,
             }))
         }
+        "vector_search" => {
+            let config = state.connection(arg_str(args, "connectionId")?)?;
+            if config.protocol.family() != crate::models::DriverFamily::Vector {
+                return Err(AppError::validation("vector_search requires a Milvus or Qdrant connection."));
+            }
+            let password = state.connection_password(&config)?;
+            let vector = args.get("vector").and_then(Value::as_array)
+                .map(|items| items.iter().filter_map(Value::as_f64).collect::<Vec<f64>>())
+                .unwrap_or_default();
+            if vector.is_empty() {
+                return Err(AppError::validation("vector_search requires a non-empty numeric `vector` array."));
+            }
+            let top_k = clamp(arg_u64(args, "topK"), 10, 100) as u32;
+            let output_fields = args.get("outputFields").and_then(Value::as_array)
+                .map(|items| items.iter().filter_map(|v| v.as_str().map(str::to_string)).collect::<Vec<String>>())
+                .unwrap_or_default();
+            let result = state.vector.search(&config, password, VectorSearchRequest {
+                connection_id: config.id.clone(),
+                collection: arg_str(args, "collection")?.to_string(),
+                vector_field: args.get("vectorField").and_then(Value::as_str).map(str::to_string),
+                vector,
+                top_k,
+                filter: args.get("filter").cloned().unwrap_or(Value::Null),
+                output_fields,
+                params: Value::Null,
+                operation_id: operation_id(),
+            }).await?;
+            audit(state, Some(&config), "agent_query", "MCP vector search", Some(result.hits.len() as i64), "success", None);
+            Ok(json!({ "hits": result.hits, "durationMs": result.duration_ms }))
+        }
         _ => Err(AppError::validation(format!("Unknown tool '{name}'."))),
     }
 }
@@ -345,6 +376,19 @@ fn tool_definitions(allow_writes: bool) -> Vec<Value> {
                 "size": { "type": "integer", "minimum": 1, "maximum": 100, "default": 20 }
             }, "required": ["connectionId", "index"] }
         }),
+        json!({
+            "name": "vector_search",
+            "description": "Run a vector similarity search on a Milvus or Qdrant collection (read-only, topK max 100). Provide the query `vector`; `filter` is a Milvus boolean-expression string or a Qdrant filter object.",
+            "inputSchema": { "type": "object", "properties": {
+                "connectionId": connection_arg["connectionId"].clone(),
+                "collection": { "type": "string" },
+                "vector": { "type": "array", "items": { "type": "number" }, "description": "Query embedding." },
+                "vectorField": { "type": "string", "description": "Named vector field; omit for the default/only vector." },
+                "filter": { "description": "Milvus expr string or Qdrant filter object." },
+                "outputFields": { "type": "array", "items": { "type": "string" } },
+                "topK": { "type": "integer", "minimum": 1, "maximum": 100, "default": 10 }
+            }, "required": ["connectionId", "collection", "vector"] }
+        }),
     ];
     if allow_writes {
         tools.push(json!({
@@ -381,7 +425,7 @@ async fn handle_request(
             "capabilities": { "tools": { "listChanged": false } },
             "serverInfo": { "name": "luxbase-mcp", "version": env!("CARGO_PKG_VERSION") },
             "instructions": format!(
-                "LuxBase MCP bridge over the user's saved connections. Read-only tools: list_connections, list_tables, describe_table, query, redis_scan, redis_get, es_search. {}Passwords never leave the LuxBase vault. Statements are appended to the LuxBase audit log.",
+                "LuxBase MCP bridge over the user's saved connections. Read-only tools: list_connections, list_tables, describe_table, query, redis_scan, redis_get, es_search, vector_search. {}Passwords never leave the LuxBase vault. Statements are appended to the LuxBase audit log.",
                 if allow_writes { "Write tool enabled: execute (single statement). " } else { "Writes are disabled; start luxbase-mcp with --allow-writes to enable execute. " }
             ),
         })),

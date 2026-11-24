@@ -5,7 +5,7 @@
 # LuxBase
 
 **The free, open-source Navicat alternative.**
-One window for MySQL · PostgreSQL · SQLite · Redis · Elasticsearch — with a built-in MCP server for AI agents.
+One window for MySQL · PostgreSQL · SQLite · Redis · Elasticsearch · Milvus · Qdrant — with a built-in MCP server for AI agents.
 
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 [![Release](https://img.shields.io/badge/release-v2.3.0-brightgreen.svg)](https://github.com/char518/LuxBase/releases)
@@ -24,7 +24,7 @@ LuxBase is a database client I built for myself and use every day. It started be
 
 | What you do in Navicat | In LuxBase |
 | --- | --- |
-| Connect to MySQL / PostgreSQL / SQLite | Same, plus Redis and Elasticsearch |
+| Connect to MySQL / PostgreSQL / SQLite | Same, plus Redis, Elasticsearch, Milvus and Qdrant |
 | Browse, filter and edit table data | Double-click to edit cells; batch changes commit in one transaction with full rollback |
 | SQL queries, history, execution plans | Monaco editor + query history + execution plans |
 | Export results | CSV / JSON Lines, filenames include table and timestamp |
@@ -32,16 +32,16 @@ LuxBase is a database client I built for myself and use every day. It started be
 | Manage and migrate connections | Batch import/export in a passphrase-sealed envelope |
 | Price | Free, GPL-3.0 open source |
 
-**On top of that**: unified Redis/ES management, an MCP server so AI agents can query your databases, and fully open code you can change yourself.
+**On top of that**: unified Redis/ES management, Milvus & Qdrant vector stores, an MCP server so AI agents can query your databases, and fully open code you can change yourself.
 
 ## Protocol coverage
 
-| | MySQL | PostgreSQL | SQLite | Redis | Elasticsearch |
-| --- | :-: | :-: | :-: | :-: | :-: |
-| Browse & edit data | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Query console | SQL | SQL | SQL | Raw commands | Query DSL / REST |
-| Transfer & sync | ✓ | ✓ | ✓ | — | — |
-| Structure compare | ✓ | ✓ | ✓ | — | — |
+| | MySQL | PostgreSQL | SQLite | Redis | Elasticsearch | Milvus | Qdrant |
+| --- | :-: | :-: | :-: | :-: | :-: | :-: | :-: |
+| Browse & edit data | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Query console | SQL | SQL | SQL | Raw commands | Query DSL / REST | Vector / REST | Vector / REST |
+| Transfer & sync | ✓ | ✓ | ✓ | — | — | — | — |
+| Structure compare | ✓ | ✓ | ✓ | — | — | — | — |
 
 ## Highlights
 
@@ -49,6 +49,7 @@ LuxBase is a database client I built for myself and use every day. It started be
 - **Edit data without writing UPDATEs** — double-click a result cell and type. Stage changes across as many rows and columns as you like, then apply everything in **one transaction; any failure rolls it all back**. BLOBs get HEX/text previews and editing too.
 - **Full-featured Redis** — browse keys per DB, binary-safe keys and values (UTF-8 / GBK / hex / base64), type-aware value editing, an embedded command console, and no freezing on huge keyspaces.
 - **Real Elasticsearch management** — indices, mappings, aliases, document CRUD, Query DSL and a REST console.
+- **Vector databases too** — Milvus (and Zilliz Cloud) and Qdrant: browse collections, inspect schema and indexes, run vector similarity search and scalar queries, edit entities/points, and a raw REST console. Dangerous drops and deletes need confirmation and land in the audit log.
 - **Big-table transfers that don't hurt** — keyset pagination + batched transactional commits with live progress, rate and ETA. Optionally drop secondary indexes first and rebuild them afterwards; a lifesaver on very large tables.
 - **Security taken seriously** — credentials sealed with AES-256-GCM on your machine, never uploaded. Dangerous operations need confirmation, and everything lands in an append-only audit log.
 - **Connections travel with you** — batch import/export in a passphrase-sealed envelope, so moving machines is painless.
@@ -68,7 +69,7 @@ The bundle includes `luxbase-mcp`, a local stdio MCP server. Once configured, AI
 }
 ```
 
-Read-only by default: table metadata, single-statement SELECTs (100 rows default, 1000 max), Redis scans, ES searches. Set `"args": ["--allow-writes"]` to also expose an `execute` tool for single write statements. Every statement an agent runs is appended to the LuxBase audit log.
+Read-only by default: table metadata, single-statement SELECTs (100 rows default, 1000 max), Redis scans, ES searches, and vector similarity search on Milvus/Qdrant. Set `"args": ["--allow-writes"]` to also expose an `execute` tool for single write statements. Every statement an agent runs is appended to the LuxBase audit log.
 
 ## Install (macOS)
 

@@ -207,7 +207,7 @@ fn quote_identifier(protocol: Protocol, identifier: &str) -> String {
         Protocol::Postgres | Protocol::Sqlite => {
             format!("\"{}\"", identifier.replace('"', "\"\""))
         }
-        Protocol::Redis | Protocol::Elasticsearch => identifier.to_string(),
+        Protocol::Redis | Protocol::Elasticsearch | Protocol::Milvus | Protocol::Qdrant => identifier.to_string(),
     }
 }
 
@@ -227,7 +227,7 @@ fn qualified_table(protocol: Protocol, schema: Option<&str>, table: &str) -> App
             ))
         }
         Protocol::Sqlite => Ok(quote_identifier(protocol, table)),
-        Protocol::Redis | Protocol::Elasticsearch => Err(AppError::unsupported(
+        Protocol::Redis | Protocol::Elasticsearch | Protocol::Milvus | Protocol::Qdrant => Err(AppError::unsupported(
             "SQL import is not available for Redis or Elasticsearch.",
         )),
     }

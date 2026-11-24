@@ -40,6 +40,8 @@
       /^(.+) · click to view structure, double-click to open data$/, (m, n) => `${n} · 单击查看结构，双击打开数据`],
     [/^(.+) · 单击打开索引浏览$/, (m, n) => `${n} · click to browse index`,
       /^(.+) · click to browse index$/, (m, n) => `${n} · 单击打开索引浏览`],
+    [/^(.+) · 单击打开集合浏览$/, (m, n) => `${n} · click to browse collection`,
+      /^(.+) · click to browse collection$/, (m, n) => `${n} · 单击打开集合浏览`],
     [/^文档 (.+)$/, (m, n) => `Document ${n}`,
       /^Document (.+)$/, (m, n) => `文档 ${n}`],
     [/^(\d+) 个警告$/, (m, n) => `${n} warnings`,

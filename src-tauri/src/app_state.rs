@@ -1,6 +1,7 @@
 use crate::drivers::kv::KvConnectionManager;
 use crate::drivers::search::SearchConnectionManager;
 use crate::drivers::sql::SqlConnectionManager;
+use crate::drivers::vector::VectorConnectionManager;
 use crate::error::{AppError, AppResult};
 use crate::jobs::JobTable;
 use crate::models::{ConnectionConfig, SyncProgress, TransferProgress};
@@ -16,6 +17,7 @@ pub struct AppState {
     pub sql: SqlConnectionManager,
     pub kv: KvConnectionManager,
     pub search: SearchConnectionManager,
+    pub vector: VectorConnectionManager,
     /// Data transfer and row-diff work run on these so the UI can poll progress and stop them.
     pub transfer_jobs: JobTable<TransferProgress>,
     pub sync_jobs: JobTable<SyncProgress>,
@@ -34,6 +36,7 @@ impl AppState {
             sql: SqlConnectionManager::default(),
             kv: KvConnectionManager::default(),
             search: SearchConnectionManager::default(),
+            vector: VectorConnectionManager::default(),
             transfer_jobs: JobTable::default(),
             sync_jobs: JobTable::default(),
             sync_plans: PlanCache::default(),
@@ -87,6 +90,7 @@ impl AppState {
         self.sql.close_all().await;
         self.kv.close_all().await;
         self.search.close_all().await;
+        self.vector.close_all().await;
         let _ = self.store.append_audit(
             None,
             None,
