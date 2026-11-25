@@ -452,6 +452,8 @@ window.__LUX_I18N_DICT__ = Object.assign(window.__LUX_I18N_DICT__ || {}, {
   "已加载": "Loaded",
   "未加载": "Not loaded",
   "实体详情": "Entity",
+  "复制 JSON": "Copy JSON",
+  "已复制 JSON": "JSON copied",
   "Qdrant 点需包含 id、vector，payload 可选；保存执行 upsert。可粘贴数组批量写入。": "A Qdrant point needs id and vector; payload is optional. Saving runs upsert. Paste an array to write in bulk.",
   "Milvus 实体为字段/值对象；保存执行 upsert（需含主键）。可粘贴数组批量写入。": "A Milvus entity is a field/value object; saving runs upsert (primary key required). Paste an array to write in bulk.",
   "写入": "Write",

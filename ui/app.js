@@ -42,6 +42,7 @@ export function mountUi() {
   const vectorSessions = new Map();
   let lastVectorConn = null;
   let vectorEntityModalMode = null;
+  let vectorEntityView = null;
   let vectorState = {
     connectionId: null,
     protocol: null,
@@ -5462,7 +5463,7 @@ export function mountUi() {
     const rows = hits.map((hit, index) => `
       <tr class="es-doc-row" data-vector-row="${index}" title="点击查看 / 编辑实体">
         <td class="row-number">${index + 1}</td>
-        <td class="es-doc-id">${escapeHtml(hit.id == null ? "—" : String(hit.id))}</td>
+        <td class="es-doc-id">${escapeHtml(String(vectorRowId(hit.fields) ?? hit.id ?? "—"))}</td>
         <td class="numeric">${hit.score != null ? hit.score.toFixed(4) : "—"}</td>
         <td class="es-doc-source">${highlightJson(hit.fields, 0)}</td>
       </tr>`).join("");
@@ -5610,7 +5611,7 @@ export function mountUi() {
       <div class="object-table-wrap"><table class="object-table"><thead><tr><th>字段</th><th>类型</th><th>角色</th><th class="numeric">维度</th><th>度量</th></tr></thead><tbody>${fields || '<tr><td colspan="5" class="empty-table">无字段信息</td></tr>'}</tbody></table></div>
       <div class="es-panel-head"><strong>索引</strong></div>
       <div class="object-table-wrap"><table class="object-table"><thead><tr><th>名称</th><th>字段</th><th>类型</th><th>度量</th></tr></thead><tbody>${indexes || '<tr><td colspan="4" class="empty-table">无索引信息</td></tr>'}</tbody></table></div>
-      <div class="es-panel-head"><strong>原始描述</strong></div>
+      <div class="es-panel-head"><strong>原始描述</strong><button class="ghost-button" data-action="vector-copy-schema"><svg><use href="#i-copy"/></svg>复制 JSON</button></div>
       <pre class="es-json">${highlightJson(detail.raw)}</pre>`;
   }
 
@@ -5636,12 +5637,22 @@ export function mountUi() {
     const qdrant = vectorIsQdrant();
     const template = mode === "new" ? (qdrant ? { id: 1, vector: [], payload: {} } : vectorMilvusTemplate()) : (row ?? {});
     const text = JSON.stringify(template, null, 2);
+    const isJson = looksLikeJson(text);
+    const view = mode === "new" ? "edit" : (vectorEntityView || "preview");
+    vectorEntityView = view;
     const hint = qdrant
       ? "Qdrant 点需包含 id、vector，payload 可选；保存执行 upsert。可粘贴数组批量写入。"
       : "Milvus 实体为字段/值对象；保存执行 upsert（需含主键）。可粘贴数组批量写入。";
+    const toggle = (mode !== "new" && isJson)
+      ? `<div class="redis-view-toggle"><button class="${view === "preview" ? "active" : ""}" data-action="vector-entity-preview">高亮预览</button><button class="${view === "edit" ? "active" : ""}" data-action="vector-entity-edit">编辑</button></div>`
+      : "";
+    const body = (view === "preview" && isJson)
+      ? `<pre class="redis-json-pre es-doc-source-pre">${highlightJson(template)}</pre>`
+      : `<textarea id="vector-entity-body" class="modal-textarea es-doc-source-editor" spellcheck="false">${escapeHtml(text)}</textarea>`;
     showModal(mode === "new" ? "新建实体" : "实体详情", mode === "new" ? "INSERT / UPSERT" : "ENTITY", `
       <div class="form-note"><svg><use href="#i-shield"/></svg>${hint}</div>
-      <textarea id="vector-entity-body" class="modal-textarea es-doc-source-editor" spellcheck="false">${escapeHtml(text)}</textarea>
+      <div class="redis-value-toolbar">${toggle}<button class="ghost-button" data-action="vector-copy-entity"><svg><use href="#i-copy"/></svg>复制 JSON</button></div>
+      ${body}
       <div class="modal-footer">
         <button class="secondary-button" data-close-modal>取消</button>
         ${mode === "new" ? "" : '<button class="danger-button" data-action="vector-delete-entity">删除实体</button>'}
@@ -5651,9 +5662,13 @@ export function mountUi() {
 
   async function vectorSaveEntity() {
     const connection = requireVectorConnection();
-    const text = $("#vector-entity-body")?.value || "";
+    const editor = $("#vector-entity-body");
     let parsed;
-    try { parsed = JSON.parse(text); } catch { throw new Error("实体必须是合法 JSON。"); }
+    if (editor) {
+      try { parsed = JSON.parse(editor.value || ""); } catch { throw new Error("实体必须是合法 JSON。"); }
+    } else {
+      parsed = vectorState.currentRow ?? {};
+    }
     const rows = Array.isArray(parsed) ? parsed : [parsed];
     if (!rows.length || rows.some((r) => !r || typeof r !== "object" || Array.isArray(r))) throw new Error("实体必须是 JSON 对象或对象数组。");
     const result = await backendCall("vector_upsert", { connectionId: connection.id, request: { connectionId: connection.id, collection: vectorState.collection, rows, operationId: operationId() } });
@@ -11884,6 +11899,26 @@ export function mountUi() {
       case "vector-delete-entity":
         vectorDeleteEntity();
         break;
+      case "vector-entity-preview":
+        vectorEntityView = "preview";
+        vectorEntityModal(vectorEntityModalMode, vectorState.currentRow);
+        break;
+      case "vector-entity-edit":
+        vectorEntityView = "edit";
+        vectorEntityModal(vectorEntityModalMode, vectorState.currentRow);
+        break;
+      case "vector-copy-entity": {
+        const text = $("#vector-entity-body")?.value ?? JSON.stringify(vectorState.currentRow ?? {}, null, 2);
+        const ok = await copyToClipboard(textCopyPayload(text));
+        toast(ok ? "已复制 JSON" : "复制失败", ok ? `${text.length} 字符写入剪贴板。` : "系统剪贴板不可用。", ok ? "success" : "danger");
+        break;
+      }
+      case "vector-copy-schema": {
+        const text = JSON.stringify(vectorState.detail?.raw ?? {}, null, 2);
+        const ok = await copyToClipboard(textCopyPayload(text));
+        toast(ok ? "已复制 JSON" : "复制失败", ok ? `${text.length} 字符写入剪贴板。` : "系统剪贴板不可用。", ok ? "success" : "danger");
+        break;
+      }
       case "vector-delete-entities":
         vectorDeleteEntitiesModal();
         break;
