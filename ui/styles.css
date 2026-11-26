@@ -470,7 +470,7 @@ kbd { border: 1px solid #d9e0ea; border-bottom-color: #cbd3e0; border-radius: 4p
 .redis-key-title { display: flex; align-items: center; gap: 9px; min-width: 0; flex: 1 1 200px; max-width: 360px; }
 .redis-key-title > div { min-width: 0; }
 .redis-key-title h2 { margin: 4px 0 0; font: 600 16px var(--mono); color: #28394e; letter-spacing: -.2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.key-breadcrumb { color: #737e8e; font-size: 11px; }
+.key-breadcrumb { color: #737e8e; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .key-breadcrumb span { margin: 0 4px; color: #9da5ae; }
 .key-meta-strip { display: flex; align-items: stretch; gap: 0; flex: 1 1 auto; min-width: 0; overflow: hidden; padding: 1px 0; }
 .key-meta-strip > span { display: grid; gap: 3px; min-width: 65px; padding: 2px 13px; border-left: 1px solid #edf0f4; }
@@ -493,7 +493,7 @@ kbd { border: 1px solid #d9e0ea; border-bottom-color: #cbd3e0; border-radius: 4p
 .redis-value-panel.active { display: block; }
 
 /* Elasticsearch */
-.es-view.active { display: grid; grid-template-rows: 64px 33px minmax(0, 1fr); background: #fbfcff; }
+.es-view.active { display: grid; grid-template-rows: auto 33px minmax(0, 1fr); background: #fbfcff; }
 .es-head { display: flex; align-items: center; gap: 14px; padding: 10px 15px; background: #fff; border-bottom: 1px solid #edf0f4; }
 .es-title { display: flex; align-items: center; gap: 9px; min-width: 0; flex: 0 1 auto; max-width: 420px; }
 .es-title > div { min-width: 0; }
@@ -563,7 +563,7 @@ kbd { border: 1px solid #d9e0ea; border-bottom-color: #cbd3e0; border-radius: 4p
 .es-resize-wrap > pre { overflow: auto; }
 .es-resize-wrap .v-resizer { position: absolute; left: 0; right: 0; bottom: -5px; height: 9px; margin: 0; z-index: 5; }
 /* Vector stores (Milvus / Qdrant) reuse the ES workspace chrome. */
-.vector-view.active { display: grid; grid-template-rows: 64px 33px minmax(0, 1fr); background: #fbfcff; }
+.vector-view.active { display: grid; grid-template-rows: auto 33px minmax(0, 1fr); background: #fbfcff; }
 .vector-view .es-tab.active::after { background: #1f6feb; }
 .vector-bar { display: flex; flex-direction: column; gap: 10px; }
 .vector-bar .es-dsl { width: 100%; min-height: 80px; max-height: 160px; }
@@ -1542,8 +1542,8 @@ html[lang="en"] .tb-button { width: auto; min-width: 56px; padding: 5px 8px; }
 .context-menu .tab-switch-item.is-active { color: #1d5bb5; font-weight: 600; background: #eef4fd; }
 .context-menu .tab-switch-item .tab-switch-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.objects-view.active { display: grid; grid-template-rows: 36px auto minmax(0, 1fr); }
-.objects-toolbar { display: flex; align-items: center; gap: 1px; padding: 0 9px; border-bottom: 1px solid #e5e8ee; background: #fafafb; }
+.objects-view.active { display: grid; grid-template-rows: auto auto minmax(0, 1fr); }
+.objects-toolbar { display: flex; align-items: center; gap: 1px; min-height: 36px; box-sizing: border-box; padding: 0 9px; border-bottom: 1px solid #e5e8ee; background: #fafafb; }
 .ot-button { display: inline-flex; align-items: center; gap: 5px; height: 27px; padding: 0 7px; border-radius: 4px; color: #536174; font-size: 12px; white-space: nowrap; }
 .ot-button svg { width: 15px; height: 15px; stroke: none; }
 .ot-button.icon svg { stroke: currentColor; }
