@@ -159,6 +159,10 @@ impl VectorConnectionManager {
         self.driver(config, password).await?.query(request).await
     }
 
+    pub async fn get(&self, config: &ConnectionConfig, password: Option<String>, collection: &str, ids: Vec<serde_json::Value>, operation_id: &str) -> AppResult<Vec<serde_json::Value>> {
+        self.driver(config, password).await?.get(collection, ids, operation_id).await
+    }
+
     pub async fn upsert(&self, config: &ConnectionConfig, password: Option<String>, request: VectorUpsertRequest) -> AppResult<VectorWriteResult> {
         self.driver(config, password).await?.upsert(request).await
     }

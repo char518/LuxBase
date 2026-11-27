@@ -279,6 +279,18 @@ impl VectorDriver for QdrantDriver {
         }).await
     }
 
+    async fn get(&self, collection: &str, ids: Vec<Value>, operation_id: &str) -> AppResult<Vec<Value>> {
+        validate_collection_name(collection)?;
+        if ids.is_empty() {
+            return Err(AppError::validation("Provide at least one id to fetch."));
+        }
+        self.http.run_cancellable(operation_id, async {
+            let body = json!({ "ids": ids, "with_payload": true, "with_vector": true });
+            let result = self.api(Method::POST, &self.collection_path(collection, "/points"), Some(&body)).await?;
+            Ok(result.as_array().cloned().unwrap_or_default())
+        }).await
+    }
+
     async fn upsert(&self, request: VectorUpsertRequest) -> AppResult<VectorWriteResult> {
         validate_collection_name(&request.collection)?;
         if request.rows.is_empty() {

@@ -2136,6 +2136,21 @@ pub async fn vector_query(
 }
 
 #[tauri::command]
+pub async fn vector_get(
+    state: State<'_, Arc<AppState>>,
+    connection_id: String,
+    collection: String,
+    ids: Vec<serde_json::Value>,
+    operation_id: String,
+) -> AppResult<Vec<serde_json::Value>> {
+    let state = state_ref(&state);
+    state.ensure_running()?;
+    let config = state.connection(&connection_id)?;
+    let password = state.connection_password(&config)?;
+    state.vector.get(&config, password, &collection, ids, &operation_id).await
+}
+
+#[tauri::command]
 pub async fn vector_upsert(
     state: State<'_, Arc<AppState>>,
     connection_id: String,

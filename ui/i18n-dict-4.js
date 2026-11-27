@@ -481,6 +481,7 @@ window.__LUX_I18N_DICT__ = Object.assign(window.__LUX_I18N_DICT__ || {}, {
   "向量检索失败": "Vector search failed",
   "标量查询失败": "Scalar query failed",
   "Schema 读取失败": "Failed to read schema",
+  "实体读取失败": "Failed to read entity",
   "实体保存失败": "Failed to save entity",
   "删除请求无效": "Invalid delete request",
   "集合创建失败": "Failed to create collection",

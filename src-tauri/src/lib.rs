@@ -153,6 +153,7 @@ pub fn run() {
             commands::vector_drop_collection,
             commands::vector_search,
             commands::vector_query,
+            commands::vector_get,
             commands::vector_upsert,
             commands::vector_delete,
             commands::vector_rest,

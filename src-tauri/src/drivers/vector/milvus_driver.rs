@@ -8,6 +8,7 @@ use crate::models::{
     VectorUpsertRequest, VectorWriteResult,
 };
 use async_trait::async_trait;
+use futures::stream::{self, StreamExt};
 use reqwest::Method;
 use serde_json::{json, Map, Value};
 use std::time::Instant;
@@ -253,21 +254,23 @@ impl VectorDriver for MilvusDriver {
             let names: Vec<String> = data.as_array().map(|items| {
                 items.iter().filter_map(|item| item.as_str().map(str::to_string)).collect()
             }).unwrap_or_default();
-            let mut collections = Vec::new();
-            // Bounded enrichment so a large keyspace does not fan out into hundreds of calls.
-            for name in names.iter().take(200) {
-                let detail = self.describe_inner(name).await.ok();
-                let (status, vector_fields, description, row_count) = match &detail {
-                    Some(d) => (
-                        d.loaded.map(|loaded| if loaded { "Loaded".to_string() } else { "NotLoad".to_string() }),
-                        d.fields.iter().filter(|f| f.is_vector).map(|f| f.name.clone()).collect(),
-                        d.raw.get("description").and_then(Value::as_str).filter(|s| !s.is_empty()).map(str::to_string),
-                        d.row_count,
-                    ),
-                    None => (None, Vec::new(), None, None),
-                };
-                collections.push(VectorCollection { name: name.clone(), row_count, status, vector_fields, description });
-            }
+            let mut collections: Vec<VectorCollection> = stream::iter(names.into_iter().take(200))
+                .map(|name| async move {
+                    let detail = self.describe_inner(&name).await.ok();
+                    let (status, vector_fields, description, row_count) = match &detail {
+                        Some(d) => (
+                            d.loaded.map(|loaded| if loaded { "Loaded".to_string() } else { "NotLoad".to_string() }),
+                            d.fields.iter().filter(|f| f.is_vector).map(|f| f.name.clone()).collect::<Vec<String>>(),
+                            d.raw.get("description").and_then(Value::as_str).filter(|s| !s.is_empty()).map(str::to_string),
+                            d.row_count,
+                        ),
+                        None => (None, Vec::new(), None, None),
+                    };
+                    VectorCollection { name, row_count, status, vector_fields, description }
+                })
+                .buffer_unordered(8)
+                .collect()
+                .await;
             collections.sort_by(|a, b| a.name.cmp(&b.name));
             Ok(collections)
         }).await
@@ -358,6 +361,21 @@ impl VectorDriver for MilvusDriver {
             let data = self.api("entities/query", &Value::Object(map)).await?;
             let rows = data.as_array().cloned().unwrap_or_default();
             Ok(VectorQueryResult { rows, next_offset: None, duration_ms: started.elapsed().as_millis() as u64 })
+        }).await
+    }
+
+    async fn get(&self, collection: &str, ids: Vec<Value>, operation_id: &str) -> AppResult<Vec<Value>> {
+        validate_collection_name(collection)?;
+        if ids.is_empty() {
+            return Err(AppError::validation("Provide at least one id to fetch."));
+        }
+        self.http.run_cancellable(operation_id, async {
+            let mut map = self.base_body();
+            map.insert("collectionName".into(), json!(collection));
+            map.insert("id".into(), json!(ids));
+            map.insert("outputFields".into(), json!(["*"]));
+            let data = self.api("entities/get", &Value::Object(map)).await?;
+            Ok(data.as_array().cloned().unwrap_or_default())
         }).await
     }
 

@@ -6,6 +6,7 @@ use crate::models::{
     VectorWriteResult,
 };
 use async_trait::async_trait;
+use serde_json::Value;
 
 /// One interface over the vector stores (Milvus, Qdrant). Each driver translates these
 /// unified requests into its native REST API so the workspace UI stays protocol-agnostic.
@@ -21,6 +22,8 @@ pub trait VectorDriver: Send + Sync {
     async fn drop_collection(&self, name: &str, confirmed_dangerous: bool, operation_id: &str) -> AppResult<()>;
     async fn search(&self, request: VectorSearchRequest) -> AppResult<VectorSearchResult>;
     async fn query(&self, request: VectorQueryRequest) -> AppResult<VectorQueryResult>;
+    /// Fetch full entities/points by id (including vectors), used to edit a search hit completely.
+    async fn get(&self, collection: &str, ids: Vec<Value>, operation_id: &str) -> AppResult<Vec<Value>>;
     async fn upsert(&self, request: VectorUpsertRequest) -> AppResult<VectorWriteResult>;
     async fn delete(&self, request: VectorDeleteRequest, confirmed_dangerous: bool) -> AppResult<VectorWriteResult>;
     async fn execute_rest(&self, request: VectorRestRequest) -> AppResult<VectorRestResult>;

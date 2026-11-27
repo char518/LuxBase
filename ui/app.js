@@ -5456,6 +5456,23 @@ export function mountUi() {
     return pk ? row[pk] : undefined;
   }
 
+  function vectorCompactRow(row) {
+    const walk = (value, depth) => {
+      if (depth > 3 || value == null) return value;
+      if (Array.isArray(value)) {
+        if (value.length > 8 && value.every((n) => typeof n === "number")) return [...value.slice(0, 4), `…+${value.length - 4}`];
+        return value.map((item) => walk(item, depth + 1));
+      }
+      if (typeof value === "object") {
+        const out = {};
+        for (const key of Object.keys(value)) out[key] = walk(value[key], depth + 1);
+        return out;
+      }
+      return value;
+    };
+    return walk(row, 0);
+  }
+
   function renderVectorSearchResults() {
     const box = $("#vector-search-results");
     if (!box) return;
@@ -5465,10 +5482,10 @@ export function mountUi() {
         <td class="row-number">${index + 1}</td>
         <td class="es-doc-id">${escapeHtml(String(vectorRowId(hit.fields) ?? hit.id ?? "—"))}</td>
         <td class="numeric">${hit.score != null ? hit.score.toFixed(4) : "—"}</td>
-        <td class="es-doc-source">${highlightJson(hit.fields, 0)}</td>
+        <td class="es-doc-source">${highlightJson(vectorCompactRow(hit.fields), 0)}</td>
       </tr>`).join("");
     box.innerHTML = `
-      <div class="es-results-meta">${vectorState.searchMs != null ? `命中 <b>${hits.length}</b> 条 · ${vectorState.searchMs} ms · ${vectorIsQdrant() ? "分数越高越相似" : "distance 越小越相似"}` : "输入查询向量后点击“检索”，这里显示最相似的实体。"}</div>
+      <div class="es-results-meta">${vectorState.searchMs != null ? `命中 ${hits.length} 条 · ${vectorState.searchMs} ms · ${vectorIsQdrant() ? "分数越高越相似" : "distance 越小越相似"}` : "输入查询向量后点击“检索”，这里显示最相似的实体。"}</div>
       <div class="object-table-wrap es-doc-wrap">
         <table class="object-table" data-resize-key="vector-hits">
           <colgroup><col style="width:48px"><col style="width:160px"><col style="width:90px"><col></colgroup>
@@ -5476,7 +5493,7 @@ export function mountUi() {
           <tbody>${rows || '<tr><td colspan="4" class="empty-table">没有命中。请提供查询向量并点击“检索”。</td></tr>'}</tbody>
         </table>
       </div>`;
-    $$(".es-doc-row", box).forEach((row) => row.addEventListener("click", () => vectorEntityModal("edit", hits[Number(row.dataset.vectorRow)]?.fields)));
+    $$(".es-doc-row", box).forEach((row) => row.addEventListener("click", () => openVectorEntity(hits[Number(row.dataset.vectorRow)]?.fields)));
     applyGenericColWidths();
   }
 
@@ -5526,12 +5543,12 @@ export function mountUi() {
       <tr class="es-doc-row" data-vector-row="${index}" title="点击查看 / 编辑实体">
         <td class="row-number">${(qdrant ? 0 : vectorState.queryOffset) + index + 1}</td>
         <td class="es-doc-id">${escapeHtml(vectorRowId(row) == null ? "—" : String(vectorRowId(row)))}</td>
-        <td class="es-doc-source">${highlightJson(row, 0)}</td>
+        <td class="es-doc-source">${highlightJson(vectorCompactRow(row), 0)}</td>
       </tr>`).join("");
     const hasPrev = qdrant ? false : vectorState.queryOffset > 0;
     const hasNext = qdrant ? vectorState.nextOffset != null : rows.length >= vectorState.queryLimit;
     box.innerHTML = `
-      <div class="es-results-meta">${vectorState.queryMs != null ? `返回 <b>${rows.length}</b> 行 · ${vectorState.queryMs} ms${qdrant ? "" : ` · offset ${vectorState.queryOffset}`}` : "点击“查询”浏览实体；留空过滤可浏览全部（Milvus 需集合已加载）。"}</div>
+      <div class="es-results-meta">${vectorState.queryMs != null ? `返回 ${rows.length} 行 · ${vectorState.queryMs} ms${qdrant ? "" : ` · offset ${vectorState.queryOffset}`}` : "点击“查询”浏览实体；留空过滤可浏览全部（Milvus 需集合已加载）。"}</div>
       <div class="object-table-wrap es-doc-wrap">
         <table class="object-table" data-resize-key="vector-rows">
           <colgroup><col style="width:48px"><col style="width:160px"><col></colgroup>
@@ -5544,7 +5561,7 @@ export function mountUi() {
         <button class="ghost-button" data-action="vector-query-next" ${hasNext ? "" : "disabled"}>下一页 ›</button>
         <button class="ghost-button" data-action="vector-query-reset">回到首页</button>
       </div>`;
-    $$(".es-doc-row", box).forEach((row) => row.addEventListener("click", () => vectorEntityModal("edit", rows[Number(row.dataset.vectorRow)])));
+    $$(".es-doc-row", box).forEach((row) => row.addEventListener("click", () => openVectorEntity(rows[Number(row.dataset.vectorRow)])));
     applyGenericColWidths();
   }
 
@@ -5558,6 +5575,12 @@ export function mountUi() {
     if (vectorState.queryFilter) {
       if (vectorIsQdrant()) { try { filter = JSON.parse(vectorState.queryFilter); } catch { toast("过滤无效", "Qdrant 过滤必须是合法 JSON 对象。", "danger"); return; } }
       else filter = vectorState.queryFilter;
+    }
+    // Milvus query needs a non-empty expression; an empty filter means "browse all", so build a
+    // primary-key tautology from the known schema instead of sending an empty string the server rejects.
+    if (!filter && !vectorIsQdrant()) {
+      const pk = vectorState.detail?.fields?.find((f) => f.isPrimary);
+      if (pk) filter = /int/i.test(pk.dataType) ? `${pk.name} >= -9223372036854775808` : `${pk.name} like "%"`;
     }
     const box = $("#vector-query-results");
     if (box) box.innerHTML = '<div class="tree-loading">正在查询…</div>';
@@ -5627,6 +5650,25 @@ export function mountUi() {
       else obj[f.name] = "";
     }
     return Object.keys(obj).length ? obj : { id: 0, vector: [] };
+  }
+
+  async function openVectorEntity(row) {
+    const connection = requireVectorConnection();
+    let full = row;
+    // Qdrant search/scroll results omit the vector by default; fetch the full point so editing
+    // and re-saving (upsert) keeps the vector instead of failing validation.
+    if (vectorIsQdrant() && row && row.vector === undefined) {
+      const id = vectorRowId(row);
+      if (id != null) {
+        try {
+          const got = await backendCall("vector_get", { connectionId: connection.id, collection: vectorState.collection, ids: [id], operationId: operationId() });
+          if (Array.isArray(got) && got[0]) full = got[0];
+        } catch (error) {
+          showOperationError(error, "实体读取失败");
+        }
+      }
+    }
+    vectorEntityModal("edit", full);
   }
 
   function vectorEntityModal(mode, row) {
